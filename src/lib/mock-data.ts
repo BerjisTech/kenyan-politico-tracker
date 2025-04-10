@@ -1,3 +1,4 @@
+
 import { Politician, Role, Party, Project, Scandal, PopularityPoint } from '../types';
 
 // Generate unique IDs
@@ -350,9 +351,9 @@ export const filterPoliticiansByRole = (role: string): Promise<Politician[]> => 
   return Promise.resolve([...results]);
 };
 
-export const filterPoliticiansByParty = (party: string): Promise<Politician[]> => {
+export const filterPoliticiansByParty = (partyName: string): Promise<Politician[]> => {
   const results = mockPoliticians.filter(p => 
-    p.parties.some(party => party.name.toLowerCase().includes(party.toLowerCase()))
+    p.parties.some(party => party.name.toLowerCase().includes(partyName.toLowerCase()))
   );
   
   return Promise.resolve([...results]);
