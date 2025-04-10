@@ -7,6 +7,10 @@ import FeaturesSection from "../components/landing/FeaturesSection";
 import StatsSection from "../components/landing/StatsSection";
 import ChiefStationSection from "../components/landing/ChiefStationSection";
 import CTASection from "../components/landing/CTASection";
+import PoliticiansSection from "../components/landing/PoliticiansSection";
+import CountiesSection from "../components/landing/CountiesSection";
+import PartiesSection from "../components/landing/PartiesSection";
+import ProjectsSection from "../components/landing/ProjectsSection";
 import Scene3D from "../components/Scene3D";
 
 const Index = () => {
@@ -15,7 +19,7 @@ const Index = () => {
   const [mapView, setMapView] = useState("front");
   const [mapFlying, setMapFlying] = useState(false);
   
-  const totalSections = 5;
+  const totalSections = 9; // Updated to include the new sections
   const sectionHeight = 100 / totalSections;
   
   const { scrollYProgress } = useScroll({
@@ -77,12 +81,32 @@ const Index = () => {
         <StatsSection />
       </div>
       
-      {/* Section 4: Chief Station Section */}
+      {/* New Section 4: Politicians */}
+      <div className="snap-start min-h-screen">
+        <PoliticiansSection />
+      </div>
+      
+      {/* New Section 5: Counties */}
+      <div className="snap-start min-h-screen">
+        <CountiesSection />
+      </div>
+      
+      {/* New Section 6: Parties */}
+      <div className="snap-start min-h-screen">
+        <PartiesSection />
+      </div>
+      
+      {/* New Section 7: Projects */}
+      <div className="snap-start min-h-screen">
+        <ProjectsSection />
+      </div>
+      
+      {/* Section 8: Chief Station Section */}
       <div className="snap-start h-screen">
         <ChiefStationSection />
       </div>
       
-      {/* Section 5: CTA */}
+      {/* Section 9: CTA */}
       <div className="snap-start h-screen">
         <CTASection />
       </div>
