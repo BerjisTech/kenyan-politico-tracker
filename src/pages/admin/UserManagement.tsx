@@ -86,14 +86,17 @@ export default function UserManagement() {
 
   const updateUserRole = async (userId: string, newRole: 'superadmin' | 'admin' | 'staff' | 'user') => {
     try {
+      // Use the Supabase URL and Anon key from the environment variables
+      const SUPABASE_URL = "https://tsgatxcialgoepfbwtgk.supabase.co";
+      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzZ2F0eGNpYWxnb2VwZmJ3dGdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyODIyODUsImV4cCI6MjA1OTg1ODI4NX0.096fGcTQBJxXDcYoc5lbLH4m_-6vkyiqcJTiwAzxOdQ";
+      
       // Instead of directly updating the user_roles table, use a SERVER function that bypasses RLS
-      // For now, we'll use raw API calls which bypass type checking
-      const response = await fetch(`${supabase.supabaseUrl}/rest/v1/rpc/update_user_role`, {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/update_user_role`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': supabase.supabaseKey,
-          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           'Prefer': 'return=minimal'
         },
         body: JSON.stringify({
