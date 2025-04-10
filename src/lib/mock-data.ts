@@ -1,4 +1,3 @@
-
 import { Politician, Role, Party, Project, Scandal, PopularityPoint } from '../types';
 
 // Generate unique IDs
@@ -309,14 +308,36 @@ export const deletePolitician = (id: string): Promise<boolean> => {
   return Promise.resolve(true);
 };
 
-export const searchPoliticians = (query: string): Promise<Politician[]> => {
-  const results = mockPoliticians.filter(p => 
-    p.name.toLowerCase().includes(query.toLowerCase()) || 
-    p.currentRole.title.toLowerCase().includes(query.toLowerCase()) ||
-    (p.county && p.county.toLowerCase().includes(query.toLowerCase()))
-  );
+export const searchPoliticians = async (query: string) => {
+  if (!query) return [];
   
-  return Promise.resolve([...results]);
+  const allPoliticians = await getAllPoliticians();
+  const normalizedQuery = query.toLowerCase();
+  
+  return allPoliticians.filter(politician => {
+    // Check name
+    if (politician.name.toLowerCase().includes(normalizedQuery)) {
+      return true;
+    }
+    
+    // Check current role
+    if (politician.currentRole.title.toLowerCase().includes(normalizedQuery)) {
+      return true;
+    }
+    
+    // Check county
+    if (politician.county && politician.county.toLowerCase().includes(normalizedQuery)) {
+      return true;
+    }
+    
+    // Check current party
+    const currentParty = politician.parties.find(party => party.isCurrent);
+    if (currentParty && currentParty.name.toLowerCase().includes(normalizedQuery)) {
+      return true;
+    }
+    
+    return false;
+  });
 };
 
 // Additional filter functions

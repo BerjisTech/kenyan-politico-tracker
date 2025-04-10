@@ -15,8 +15,8 @@ export default function PoliticiansList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [partyFilter, setPartyFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [partyFilter, setPartyFilter] = useState('all');
   
   useEffect(() => {
     const fetchData = async () => {
@@ -50,14 +50,14 @@ export default function PoliticiansList() {
     }
     
     // Apply role filter
-    if (roleFilter) {
+    if (roleFilter && roleFilter !== 'all') {
       filtered = filtered.filter(p => 
         p.currentRole.title.toLowerCase() === roleFilter.toLowerCase()
       );
     }
     
     // Apply party filter
-    if (partyFilter) {
+    if (partyFilter && partyFilter !== 'all') {
       filtered = filtered.filter(p => 
         p.parties.some(party => 
           party.name.toLowerCase() === partyFilter.toLowerCase() && party.isCurrent
@@ -94,8 +94,8 @@ export default function PoliticiansList() {
 
   const clearFilters = () => {
     setSearchQuery('');
-    setRoleFilter('');
-    setPartyFilter('');
+    setRoleFilter('all');
+    setPartyFilter('all');
   };
 
   if (loading) {
@@ -158,7 +158,7 @@ export default function PoliticiansList() {
             <SelectValue placeholder="Filter by role" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Roles</SelectItem>
+            <SelectItem value="all">All Roles</SelectItem>
             {uniqueRoles.map(role => (
               <SelectItem key={role} value={role}>{role}</SelectItem>
             ))}
@@ -169,7 +169,7 @@ export default function PoliticiansList() {
             <SelectValue placeholder="Filter by party" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Parties</SelectItem>
+            <SelectItem value="all">All Parties</SelectItem>
             {uniqueParties.map(party => (
               <SelectItem key={party} value={party}>{party}</SelectItem>
             ))}
@@ -181,9 +181,9 @@ export default function PoliticiansList() {
       <div className="flex justify-between items-center text-sm">
         <p>
           Showing <strong>{filteredPoliticians.length}</strong> politicians
-          {(searchQuery || roleFilter || partyFilter) && " with applied filters"}
+          {(searchQuery || roleFilter !== 'all' || partyFilter !== 'all') && " with applied filters"}
         </p>
-        {(searchQuery || roleFilter || partyFilter) && (
+        {(searchQuery || roleFilter !== 'all' || partyFilter !== 'all') && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             Clear filters
           </Button>
@@ -250,3 +250,4 @@ export default function PoliticiansList() {
     </div>
   );
 }
+
