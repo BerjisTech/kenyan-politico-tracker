@@ -16,7 +16,10 @@ import SearchResults from "./pages/SearchResults";
 import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
 import AuthPage from "./pages/auth/AuthPage";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import UserManagement from "./pages/admin/UserManagement";
 import { AuthProvider } from "./context/AuthContext";
+import { RoleGuard } from "./components/RoleGuard";
 import React from 'react';
 import { ThemeProvider } from "./components/ThemeProvider";
 
@@ -43,6 +46,19 @@ const App = () => (
                 <Route path="/counties" element={<CountiesList />} />
                 <Route path="/parties" element={<PartiesList />} />
                 <Route path="/search" element={<SearchResults />} />
+                
+                {/* Admin routes */}
+                <Route path="/admin" element={
+                  <RoleGuard allowedRoles={['superadmin', 'admin']}>
+                    <AdminDashboard />
+                  </RoleGuard>
+                } />
+                <Route path="/admin/users" element={
+                  <RoleGuard allowedRoles={['superadmin']}>
+                    <UserManagement />
+                  </RoleGuard>
+                } />
+                
                 <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>

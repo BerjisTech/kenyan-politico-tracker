@@ -8,6 +8,7 @@ interface AuthContextProps {
   session: Session | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  userRole: 'superadmin' | 'admin' | 'staff' | 'user' | null;
 }
 
 const AuthContext = createContext<AuthContextProps>({
@@ -15,12 +16,38 @@ const AuthContext = createContext<AuthContextProps>({
   session: null,
   isLoading: true,
   isAuthenticated: false,
+  userRole: null,
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [userRole, setUserRole] = useState<'superadmin' | 'admin' | 'staff' | 'user' | null>(null);
+
+  // Fetch user role from database
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching user role:", error);
+        return;
+      }
+
+      if (data) {
+        setUserRole(data.role as 'superadmin' | 'admin' | 'staff' | 'user');
+      } else {
+        setUserRole('user'); // Default role
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener first
@@ -28,6 +55,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
+        
+        if (currentSession?.user) {
+          // Use setTimeout to avoid Supabase auth deadlock
+          setTimeout(() => {
+            fetchUserRole(currentSession.user.id);
+          }, 0);
+        } else {
+          setUserRole(null);
+        }
+        
         setIsLoading(false);
       }
     );
@@ -36,6 +73,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
+      
+      if (currentSession?.user) {
+        fetchUserRole(currentSession.user.id);
+      }
+      
       setIsLoading(false);
     });
 
@@ -49,6 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         session,
         isLoading,
         isAuthenticated: !!user,
+        userRole,
       }}
     >
       {children}
