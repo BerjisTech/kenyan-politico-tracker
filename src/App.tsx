@@ -8,6 +8,8 @@ import { Layout } from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import PoliticiansList from "./pages/PoliticiansList";
 import PoliticianDetail from "./pages/PoliticianDetail";
+import PoliticianCreate from "./pages/forms/PoliticianCreate";
+import PoliticianEdit from "./pages/forms/PoliticianEdit";
 import CountiesList from "./pages/CountiesList";
 import PartiesList from "./pages/PartiesList";
 import SearchResults from "./pages/SearchResults";
@@ -35,7 +37,9 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/politicians" element={<PoliticiansList />} />
+                <Route path="/politicians/create" element={<PoliticianCreate />} />
                 <Route path="/politicians/:id" element={<PoliticianDetail />} />
+                <Route path="/politicians/edit/:id" element={<PoliticianEdit />} />
                 <Route path="/counties" element={<CountiesList />} />
                 <Route path="/parties" element={<PartiesList />} />
                 <Route path="/search" element={<SearchResults />} />

@@ -5,11 +5,23 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Politician } from '@/types';
-import { getPoliticianById, deletePolitician } from '@/lib/mock-data';
+import { Politician, Role, Party, Project, Scandal } from '@/types';
+import { getPoliticianById } from '@/services/database';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { AlertCircle, AlertTriangle, Calendar, Edit, Trash2, Trophy, Users } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Calendar, Edit, Plus, Trash2, Trophy, Users } from 'lucide-react';
 import { toast } from 'sonner';
+import { FormDialog } from '@/pages/forms/FormDialogs';
+import { supabase } from '@/integrations/supabase/client';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function PoliticianDetail() {
   const { id } = useParams<{ id: string }>();
@@ -18,55 +30,346 @@ export default function PoliticianDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+
+  const fetchPoliticianData = async () => {
+    if (!id) {
+      setError('Politician ID is missing');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const data = await getPoliticianById(id);
+      if (!data) {
+        setError('Politician not found');
+      } else {
+        setPolitician(data);
+      }
+    } catch (err) {
+      setError('Failed to fetch politician data');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!id) {
-        setError('Politician ID is missing');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const data = await getPoliticianById(id);
-        if (!data) {
-          setError('Politician not found');
-        } else {
-          setPolitician(data);
-        }
-      } catch (err) {
-        setError('Failed to fetch politician data');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    fetchPoliticianData();
   }, [id]);
 
   const handleDelete = async () => {
     if (!id) return;
     
-    if (!window.confirm('Are you sure you want to delete this politician?')) {
-      return;
-    }
-    
     setIsDeleting(true);
     
     try {
-      const success = await deletePolitician(id);
-      if (success) {
-        toast.success('Politician deleted successfully');
-        navigate('/politicians');
-      } else {
-        throw new Error('Failed to delete politician');
+      // Delete scandals and their media links
+      const { data: scandals } = await supabase
+        .from('scandals')
+        .select('id')
+        .eq('politician_id', id);
+      
+      if (scandals && scandals.length > 0) {
+        const scandalIds = scandals.map(s => s.id);
+        await supabase
+          .from('media_links')
+          .delete()
+          .in('scandal_id', scandalIds);
+        
+        await supabase
+          .from('scandals')
+          .delete()
+          .eq('politician_id', id);
       }
+      
+      // Delete party affiliations
+      await supabase
+        .from('party_affiliations')
+        .delete()
+        .eq('politician_id', id);
+      
+      // Delete roles
+      await supabase
+        .from('roles')
+        .delete()
+        .eq('politician_id', id);
+      
+      // Delete project relationships
+      await supabase
+        .from('project_politicians')
+        .delete()
+        .eq('politician_id', id);
+      
+      // Delete popularity ratings
+      await supabase
+        .from('popularity_ratings')
+        .delete()
+        .eq('politician_id', id);
+      
+      // Finally delete the politician
+      const { error } = await supabase
+        .from('politicians')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      toast.success('Politician deleted successfully');
+      navigate('/politicians');
     } catch (err) {
       console.error(err);
       toast.error('Failed to delete politician');
     } finally {
       setIsDeleting(false);
+      setShowDeleteAlert(false);
+    }
+  };
+
+  const handleRoleUpdate = (role: Role) => {
+    if (!politician) return;
+
+    if (role.isCurrent) {
+      setPolitician({
+        ...politician,
+        currentRole: role,
+        formerRoles: politician.formerRoles.filter(r => r.id !== role.id)
+      });
+    } else {
+      // If it's a new role
+      if (!politician.formerRoles.find(r => r.id === role.id)) {
+        setPolitician({
+          ...politician,
+          formerRoles: [...politician.formerRoles, role]
+        });
+      } else {
+        // If it's an update to an existing role
+        setPolitician({
+          ...politician,
+          formerRoles: politician.formerRoles.map(r => 
+            r.id === role.id ? role : r
+          )
+        });
+      }
+    }
+    toast.success('Role updated successfully');
+  };
+
+  const handleRoleDelete = async (roleId: string) => {
+    if (!politician || !id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('roles')
+        .delete()
+        .eq('id', roleId);
+      
+      if (error) throw error;
+      
+      // Update the UI
+      setPolitician({
+        ...politician,
+        formerRoles: politician.formerRoles.filter(r => r.id !== roleId)
+      });
+      
+      toast.success('Role deleted successfully');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete role');
+    }
+  };
+
+  const handlePartyUpdate = (partyData: any) => {
+    if (!politician) return;
+    
+    // Convert from database format to application format
+    const party: Party = {
+      id: partyData.id,
+      name: partyData.parties.name,
+      joinDate: partyData.join_date,
+      leaveDate: partyData.leave_date,
+      isCurrent: partyData.is_current,
+      position: partyData.position
+    };
+    
+    // If it's a new party
+    if (!politician.parties.find(p => p.id === party.id)) {
+      setPolitician({
+        ...politician,
+        parties: [...politician.parties, party]
+      });
+    } else {
+      // If it's an update to an existing party
+      setPolitician({
+        ...politician,
+        parties: politician.parties.map(p => 
+          p.id === party.id ? party : p
+        )
+      });
+    }
+    
+    toast.success('Party affiliation updated successfully');
+  };
+
+  const handlePartyDelete = async (partyId: string) => {
+    if (!politician || !id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('party_affiliations')
+        .delete()
+        .eq('id', partyId);
+      
+      if (error) throw error;
+      
+      // Update the UI
+      setPolitician({
+        ...politician,
+        parties: politician.parties.filter(p => p.id !== partyId)
+      });
+      
+      toast.success('Party affiliation deleted successfully');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete party affiliation');
+    }
+  };
+
+  const handleProjectUpdate = (projectData: any) => {
+    if (!politician) return;
+    
+    // Convert from database format to application format if needed
+    const project: Project = {
+      id: projectData.id,
+      name: projectData.name,
+      description: projectData.description,
+      startDate: projectData.start_date,
+      endDate: projectData.end_date,
+      budget: projectData.budget,
+      status: projectData.status as any,
+      outcome: projectData.outcome,
+      location: projectData.location
+    };
+    
+    // If it's a new project
+    if (!politician.projects.find(p => p.id === project.id)) {
+      setPolitician({
+        ...politician,
+        projects: [...politician.projects, project]
+      });
+    } else {
+      // If it's an update to an existing project
+      setPolitician({
+        ...politician,
+        projects: politician.projects.map(p => 
+          p.id === project.id ? project : p
+        )
+      });
+    }
+    
+    toast.success('Project updated successfully');
+  };
+
+  const handleProjectDelete = async (projectId: string) => {
+    if (!politician || !id) return;
+    
+    try {
+      // First delete the relationship
+      await supabase
+        .from('project_politicians')
+        .delete()
+        .eq('project_id', projectId)
+        .eq('politician_id', id);
+      
+      // Then delete project locations
+      await supabase
+        .from('project_locations')
+        .delete()
+        .eq('project_id', projectId);
+      
+      // Finally delete the project
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+      
+      if (error) throw error;
+      
+      // Update the UI
+      setPolitician({
+        ...politician,
+        projects: politician.projects.filter(p => p.id !== projectId)
+      });
+      
+      toast.success('Project deleted successfully');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete project');
+    }
+  };
+
+  const handleScandalUpdate = (scandalData: any) => {
+    if (!politician) return;
+    
+    // Convert from database format to application format if needed
+    const scandal: Scandal = {
+      id: scandalData.id,
+      title: scandalData.title,
+      description: scandalData.description,
+      date: scandalData.date,
+      resolution: scandalData.resolution,
+      impact: scandalData.impact,
+      mediaLinks: scandalData.mediaLinks
+    };
+    
+    // If it's a new scandal
+    if (!politician.scandals.find(s => s.id === scandal.id)) {
+      setPolitician({
+        ...politician,
+        scandals: [...politician.scandals, scandal]
+      });
+    } else {
+      // If it's an update to an existing scandal
+      setPolitician({
+        ...politician,
+        scandals: politician.scandals.map(s => 
+          s.id === scandal.id ? scandal : s
+        )
+      });
+    }
+    
+    toast.success('Scandal updated successfully');
+  };
+
+  const handleScandalDelete = async (scandalId: string) => {
+    if (!politician) return;
+    
+    try {
+      // First delete media links
+      await supabase
+        .from('media_links')
+        .delete()
+        .eq('scandal_id', scandalId);
+      
+      // Then delete the scandal
+      const { error } = await supabase
+        .from('scandals')
+        .delete()
+        .eq('id', scandalId);
+      
+      if (error) throw error;
+      
+      // Update the UI
+      setPolitician({
+        ...politician,
+        scandals: politician.scandals.filter(s => s.id !== scandalId)
+      });
+      
+      toast.success('Scandal deleted successfully');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete scandal');
     }
   };
 
@@ -133,7 +436,7 @@ export default function PoliticianDetail() {
           </Button>
           <Button
             variant="destructive"
-            onClick={handleDelete}
+            onClick={() => setShowDeleteAlert(true)}
             disabled={isDeleting}
             className="flex items-center gap-2"
           >
@@ -279,7 +582,17 @@ export default function PoliticianDetail() {
             
             {/* Roles Tab */}
             <TabsContent value="roles" className="space-y-4">
-              <h2 className="text-xl font-semibold">Current Role</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Current Role</h2>
+                <FormDialog 
+                  formType="role" 
+                  politicianId={politician.id}
+                  entity={politician.currentRole}
+                  isEditing={true}
+                  onSave={handleRoleUpdate}
+                  buttonText="Edit Current Role"
+                />
+              </div>
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">{politician.currentRole.title}</CardTitle>
@@ -296,32 +609,63 @@ export default function PoliticianDetail() {
                 </CardContent>
               </Card>
 
-              {politician.formerRoles.length > 0 && (
-                <>
-                  <h2 className="text-xl font-semibold mt-6">Former Roles</h2>
-                  <div className="space-y-3">
-                    {politician.formerRoles.map(role => (
-                      <Card key={role.id}>
-                        <CardHeader className="pb-2">
+              <div className="flex items-center justify-between mt-6">
+                <h2 className="text-xl font-semibold">Former Roles</h2>
+                <FormDialog 
+                  formType="role" 
+                  politicianId={politician.id}
+                  onSave={handleRoleUpdate}
+                />
+              </div>
+              
+              {politician.formerRoles.length > 0 ? (
+                <div className="space-y-3">
+                  {politician.formerRoles.map(role => (
+                    <Card key={role.id}>
+                      <CardHeader className="pb-2 flex flex-row items-start justify-between">
+                        <div>
                           <CardTitle className="text-base">{role.title}</CardTitle>
                           <CardDescription>{role.organization}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-2">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span>
-                              {new Date(role.startDate).toLocaleDateString()} - 
-                              {role.endDate ? new Date(role.endDate).toLocaleDateString() : 'Present'}
-                            </span>
-                          </div>
-                          {role.description && (
-                            <p className="text-sm text-muted-foreground">{role.description}</p>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </>
+                        </div>
+                        <div className="flex">
+                          <FormDialog 
+                            formType="role" 
+                            politicianId={politician.id}
+                            entity={role}
+                            isEditing={true}
+                            onSave={handleRoleUpdate}
+                            buttonText="Edit"
+                            buttonVariant="ghost"
+                          />
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => handleRoleDelete(role.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span>
+                            {new Date(role.startDate).toLocaleDateString()} - 
+                            {role.endDate ? new Date(role.endDate).toLocaleDateString() : 'Present'}
+                          </span>
+                        </div>
+                        {role.description && (
+                          <p className="text-sm text-muted-foreground">{role.description}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center">
+                  <p className="text-muted-foreground">No former roles recorded</p>
+                </div>
               )}
             </TabsContent>
             
@@ -329,9 +673,11 @@ export default function PoliticianDetail() {
             <TabsContent value="projects" className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Projects</h2>
-                <Button variant="outline" size="sm">
-                  Add Project
-                </Button>
+                <FormDialog 
+                  formType="project" 
+                  politicianId={politician.id}
+                  onSave={handleProjectUpdate}
+                />
               </div>
               
               {politician.projects.length > 0 ? (
@@ -340,17 +686,38 @@ export default function PoliticianDetail() {
                     <Card key={project.id}>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                          <CardTitle className="text-base">{project.name}</CardTitle>
-                          <Badge 
-                            className={
-                              project.status === 'completed' ? 'bg-green-500' : 
-                              project.status === 'in-progress' ? 'bg-blue-500' : 
-                              project.status === 'planned' ? 'bg-amber-500' :
-                              'bg-red-500'
-                            }
-                          >
-                            {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-base">{project.name}</CardTitle>
+                            <Badge 
+                              className={
+                                project.status === 'completed' ? 'bg-green-500' : 
+                                project.status === 'in-progress' ? 'bg-blue-500' : 
+                                project.status === 'planned' ? 'bg-amber-500' :
+                                'bg-red-500'
+                              }
+                            >
+                              {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+                            </Badge>
+                          </div>
+                          <div className="flex">
+                            <FormDialog 
+                              formType="project" 
+                              politicianId={politician.id}
+                              entity={project}
+                              isEditing={true}
+                              onSave={handleProjectUpdate}
+                              buttonText="Edit"
+                              buttonVariant="ghost"
+                            />
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => handleProjectDelete(project.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                         {project.location && (
                           <CardDescription>Location: {project.location}</CardDescription>
@@ -397,9 +764,11 @@ export default function PoliticianDetail() {
             <TabsContent value="parties" className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Political Parties</h2>
-                <Button variant="outline" size="sm">
-                  Add Party
-                </Button>
+                <FormDialog 
+                  formType="party" 
+                  politicianId={politician.id}
+                  onSave={handlePartyUpdate}
+                />
               </div>
               
               {politician.parties.length > 0 ? (
@@ -408,10 +777,31 @@ export default function PoliticianDetail() {
                     <Card key={party.id}>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                          <CardTitle className="text-base">{party.name}</CardTitle>
-                          {party.isCurrent && (
-                            <Badge>Current</Badge>
-                          )}
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-base">{party.name}</CardTitle>
+                            {party.isCurrent && (
+                              <Badge>Current</Badge>
+                            )}
+                          </div>
+                          <div className="flex">
+                            <FormDialog 
+                              formType="party" 
+                              politicianId={politician.id}
+                              entity={party}
+                              isEditing={true}
+                              onSave={handlePartyUpdate}
+                              buttonText="Edit"
+                              buttonVariant="ghost"
+                            />
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => handlePartyDelete(party.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                         {party.position && (
                           <CardDescription>Position: {party.position}</CardDescription>
@@ -440,9 +830,11 @@ export default function PoliticianDetail() {
             <TabsContent value="scandals" className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Scandals</h2>
-                <Button variant="outline" size="sm">
-                  Add Scandal
-                </Button>
+                <FormDialog 
+                  formType="scandal" 
+                  politicianId={politician.id}
+                  onSave={handleScandalUpdate}
+                />
               </div>
               
               {politician.scandals.length > 0 ? (
@@ -450,9 +842,30 @@ export default function PoliticianDetail() {
                   {politician.scandals.map(scandal => (
                     <Card key={scandal.id}>
                       <CardHeader className="pb-2">
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className="h-4 w-4 text-destructive" />
-                          <CardTitle className="text-base">{scandal.title}</CardTitle>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4 text-destructive" />
+                            <CardTitle className="text-base">{scandal.title}</CardTitle>
+                          </div>
+                          <div className="flex">
+                            <FormDialog 
+                              formType="scandal" 
+                              politicianId={politician.id}
+                              entity={scandal}
+                              isEditing={true}
+                              onSave={handleScandalUpdate}
+                              buttonText="Edit"
+                              buttonVariant="ghost"
+                            />
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => handleScandalDelete(scandal.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                         <CardDescription>
                           {new Date(scandal.date).toLocaleDateString()}
@@ -502,6 +915,28 @@ export default function PoliticianDetail() {
           </Tabs>
         </div>
       </div>
+
+      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this politician?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the politician
+              and all related data including roles, party affiliations, projects, and scandals.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
