@@ -1,6 +1,7 @@
 
 import { Link } from "react-router-dom";
 import { UserMenu } from "@/components/UserMenu";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function Header() {
   return (
@@ -27,7 +28,8 @@ export function Header() {
           </Link>
         </nav>
 
-        <div className="flex items-center">
+        <div className="flex items-center space-x-4">
+          <ThemeToggle />
           <UserMenu />
         </div>
       </div>

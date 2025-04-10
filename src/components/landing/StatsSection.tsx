@@ -23,7 +23,7 @@ const StatsSection = () => {
             stiffness: 100, 
             damping: 10  
           }}
-          className="text-4xl md:text-5xl font-bold mb-8 text-center text-white"
+          className="text-4xl md:text-5xl font-bold mb-8 text-center text-white dark:text-white"
         >
           Kenya's Most Comprehensive Political Database
         </motion.h2>
@@ -38,7 +38,7 @@ const StatsSection = () => {
             stiffness: 100, 
             damping: 10  
           }}
-          className="text-lg md:text-xl text-center text-white/80 max-w-3xl mx-auto mb-16"
+          className="text-lg md:text-xl text-center text-white/80 dark:text-white/80 max-w-3xl mx-auto mb-16"
         >
           Scroll down to discover the depth and breadth of our political tracking system,
           featuring detailed information on politicians, counties, parties, and projects.
@@ -56,12 +56,12 @@ const StatsSection = () => {
           }}
           className="flex justify-center mt-16"
         >
-          <ChevronDown className="h-10 w-10 text-white animate-bounce" />
+          <ChevronDown className="h-10 w-10 text-white dark:text-white animate-bounce" />
         </motion.div>
       </div>
 
       {/* Overlay gradient */}
-      <div className="absolute inset-0 bg-black/50 z-0"></div>
+      <div className="absolute inset-0 bg-black/50 dark:bg-black/70 z-0"></div>
     </section>
   );
 };
