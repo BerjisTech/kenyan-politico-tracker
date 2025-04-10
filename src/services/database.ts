@@ -134,14 +134,14 @@ const convertToPolitician = async (dbPolitician: DbPolitician): Promise<Politici
   // Get current role
   const { data: currentRoleData } = await supabase
     .from('roles')
-    .select('*')
+    .select()
     .eq('id', dbPolitician.current_role_id || '')
     .single();
   
   // Get other roles
   const { data: otherRolesData } = await supabase
     .from('roles')
-    .select('*')
+    .select()
     .eq('politician_id', dbPolitician.id)
     .neq('id', dbPolitician.current_role_id || '')
     .order('start_date', { ascending: false });
@@ -149,19 +149,30 @@ const convertToPolitician = async (dbPolitician: DbPolitician): Promise<Politici
   // Get party affiliations
   const { data: partyAffiliationsData } = await supabase
     .from('party_affiliations')
-    .select('*, parties(*)')
+    .select(`
+      id,
+      party_id,
+      position,
+      join_date,
+      leave_date,
+      is_current,
+      parties:party_id (id, name)
+    `)
     .eq('politician_id', dbPolitician.id);
   
   // Get projects
   const { data: projectsData } = await supabase
     .from('project_politicians')
-    .select('*, projects(*)')
+    .select(`
+      id,
+      projects:project_id (id, name, description, start_date, end_date, budget, status, outcome)
+    `)
     .eq('politician_id', dbPolitician.id);
   
   // Get scandals
   const { data: scandalsData } = await supabase
     .from('scandals')
-    .select('*')
+    .select()
     .eq('politician_id', dbPolitician.id);
   
   // Get media links for each scandal
@@ -188,7 +199,7 @@ const convertToPolitician = async (dbPolitician: DbPolitician): Promise<Politici
   // Get popularity ratings
   const { data: popularityHistoryData } = await supabase
     .from('popularity_ratings')
-    .select('*')
+    .select()
     .eq('politician_id', dbPolitician.id)
     .order('date', { ascending: true });
   
@@ -220,27 +231,41 @@ const convertToPolitician = async (dbPolitician: DbPolitician): Promise<Politici
   })) : [];
   
   // Convert parties
-  const parties: Party[] = partyAffiliationsData ? partyAffiliationsData.map(affiliation => ({
-    id: affiliation.id,
-    name: affiliation.parties.name,
-    joinDate: affiliation.join_date,
-    leaveDate: affiliation.leave_date,
-    isCurrent: affiliation.is_current,
-    position: affiliation.position
-  })) : [];
+  const parties: Party[] = [];
+  if (partyAffiliationsData) {
+    for (const affiliation of partyAffiliationsData) {
+      if (affiliation.parties) {
+        parties.push({
+          id: affiliation.id,
+          name: affiliation.parties.name,
+          joinDate: affiliation.join_date,
+          leaveDate: affiliation.leave_date,
+          isCurrent: affiliation.is_current,
+          position: affiliation.position
+        });
+      }
+    }
+  }
   
   // Convert projects
-  const projects: Project[] = projectsData ? projectsData.map(project => ({
-    id: project.id,
-    name: project.projects.name,
-    description: project.projects.description,
-    startDate: project.projects.start_date,
-    endDate: project.projects.end_date,
-    budget: project.projects.budget,
-    status: project.projects.status as any,
-    outcome: project.projects.outcome,
-    location: "" // We'll update this later if needed
-  })) : [];
+  const projects: Project[] = [];
+  if (projectsData) {
+    for (const projectRel of projectsData) {
+      if (projectRel.projects) {
+        projects.push({
+          id: projectRel.projects.id,
+          name: projectRel.projects.name,
+          description: projectRel.projects.description,
+          startDate: projectRel.projects.start_date,
+          endDate: projectRel.projects.end_date,
+          budget: projectRel.projects.budget,
+          status: projectRel.projects.status as any,
+          outcome: projectRel.projects.outcome,
+          location: "" // We'll update this later if needed
+        });
+      }
+    }
+  }
   
   // Convert popularity history
   const popularityHistory: PopularityPoint[] = popularityHistoryData ? popularityHistoryData.map(point => ({
@@ -272,8 +297,7 @@ const convertToPolitician = async (dbPolitician: DbPolitician): Promise<Politici
 export const getCounties = async () => {
   const { data, error } = await supabase
     .from('counties')
-    .select('*')
-    .order('name', { ascending: true });
+    .select();
 
   if (error) {
     console.error("Error fetching counties:", error);
@@ -287,7 +311,7 @@ export const getCounties = async () => {
 export const getSubCountiesByCounty = async (countyId: string) => {
   const { data, error } = await supabase
     .from('sub_counties')
-    .select('*')
+    .select()
     .eq('county_id', countyId)
     .order('name', { ascending: true });
 
@@ -303,8 +327,7 @@ export const getSubCountiesByCounty = async (countyId: string) => {
 export const getParties = async () => {
   const { data, error } = await supabase
     .from('parties')
-    .select('*')
-    .order('name', { ascending: true });
+    .select();
 
   if (error) {
     console.error("Error fetching parties:", error);
@@ -318,7 +341,7 @@ export const getParties = async () => {
 export const getAllPoliticians = async (): Promise<Politician[]> => {
   const { data, error } = await supabase
     .from('politicians')
-    .select('*');
+    .select();
 
   if (error) {
     console.error("Error fetching politicians:", error);
@@ -341,7 +364,7 @@ export const getAllPoliticians = async (): Promise<Politician[]> => {
 export const getPoliticianById = async (id: string): Promise<Politician | undefined> => {
   const { data, error } = await supabase
     .from('politicians')
-    .select('*')
+    .select()
     .eq('id', id)
     .single();
 
@@ -367,7 +390,7 @@ export const searchPoliticians = async (query: string): Promise<Politician[]> =>
   // Search by name, role title, or county
   const { data, error } = await supabase
     .from('politicians')
-    .select('*')
+    .select()
     .or(`name.ilike.%${query}%,bio.ilike.%${query}%`)
     .order('name', { ascending: true });
   
@@ -407,7 +430,7 @@ export const filterPoliticiansByRole = async (role: string): Promise<Politician[
   const politicianIds = roleData.map(r => r.politician_id);
   const { data, error } = await supabase
     .from('politicians')
-    .select('*')
+    .select()
     .in('id', politicianIds);
   
   if (error) {
@@ -466,7 +489,7 @@ export const filterPoliticiansByParty = async (partyName: string): Promise<Polit
   // Get the politicians
   const { data, error } = await supabase
     .from('politicians')
-    .select('*')
+    .select()
     .in('id', politicianIds);
   
   if (error) {
@@ -508,7 +531,7 @@ export const filterPoliticiansByCounty = async (countyName: string): Promise<Pol
   // Get politicians in those counties
   const { data, error } = await supabase
     .from('politicians')
-    .select('*')
+    .select()
     .in('county_id', countyIds);
   
   if (error) {
@@ -545,7 +568,9 @@ export const populateSampleData = async () => {
           .eq('name', politician.county)
           .single();
         
-        countyId = countyData?.id;
+        if (countyData) {
+          countyId = countyData.id;
+        }
       }
       
       // Insert politician
@@ -588,7 +613,7 @@ export const populateSampleData = async () => {
       
       if (currentRoleError) {
         console.error(`Error inserting role for ${politician.name}:`, currentRoleError);
-      } else {
+      } else if (currentRoleData) {
         // Update politician with current role ID
         await supabase
           .from('politicians')
