@@ -23,6 +23,14 @@ export default function PoliticianEdit() {
       }
 
       try {
+        // Validate if the id is a proper UUID format
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(id)) {
+          setError('Invalid politician ID format');
+          setLoading(false);
+          return;
+        }
+        
         const data = await getPoliticianById(id);
         if (!data) {
           setError('Politician not found');
@@ -31,7 +39,7 @@ export default function PoliticianEdit() {
         }
       } catch (err) {
         setError('Failed to fetch politician data');
-        console.error(err);
+        console.error('Error fetching politician by id:', err);
       } finally {
         setLoading(false);
       }

@@ -325,7 +325,11 @@ export function ScandalForm({ scandal, politicianId, onSave, onCancel }: Scandal
           <FormDescription>
             Add links to news articles, videos, or other media covering this scandal
           </FormDescription>
-          <FormMessage name="mediaLinks" />
+          {form.formState.errors.mediaLinks && (
+            <p className="text-sm font-medium text-destructive">
+              {form.formState.errors.mediaLinks.message}
+            </p>
+          )}
         </div>
 
         <div className="flex justify-end gap-4">
@@ -344,3 +348,4 @@ export function ScandalForm({ scandal, politicianId, onSave, onCancel }: Scandal
     </Form>
   );
 }
+
