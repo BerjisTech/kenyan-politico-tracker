@@ -3,11 +3,13 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Politician } from '@/types';
-import { getAllPoliticians } from '@/lib/mock-data';
+import { getCounties, getAllPoliticians, filterPoliticiansByCounty } from '@/services/database';
 import { Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { DbCounty } from '@/services/database';
 
 export default function CountiesList() {
+  const [counties, setCounties] = useState<DbCounty[]>([]);
   const [politicians, setPoliticians] = useState<Politician[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -16,11 +18,16 @@ export default function CountiesList() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getAllPoliticians();
-        setPoliticians(data);
+        const [countiesData, politiciansData] = await Promise.all([
+          getCounties(),
+          getAllPoliticians()
+        ]);
+        
+        setCounties(countiesData);
+        setPoliticians(politiciansData);
       } catch (err) {
-        setError('Failed to fetch politicians');
-        console.error(err);
+        console.error("Error fetching data:", err);
+        setError('Failed to fetch data');
       } finally {
         setLoading(false);
       }
@@ -29,19 +36,14 @@ export default function CountiesList() {
     fetchData();
   }, []);
 
-  // Get unique counties
-  const counties = Array.from(
-    new Set(politicians.map(p => p.county).filter(Boolean) as string[])
-  ).sort();
-
   // Filter counties by search
   const filteredCounties = counties.filter(
-    county => county.toLowerCase().includes(searchQuery.toLowerCase())
+    county => county.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Get politicians by county
-  const getPoliticiansByCounty = (county: string) => {
-    return politicians.filter(p => p.county === county);
+  const getPoliticiansByCounty = (countyName: string) => {
+    return politicians.filter(p => p.county === countyName);
   };
 
   if (loading) {
@@ -87,11 +89,11 @@ export default function CountiesList() {
       {filteredCounties.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
           {filteredCounties.map(county => {
-            const countyPoliticians = getPoliticiansByCounty(county);
+            const countyPoliticians = getPoliticiansByCounty(county.name);
             return (
-              <Card key={county} className="hover:shadow-md transition-shadow">
+              <Card key={county.id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-2">
-                  <CardTitle>{county}</CardTitle>
+                  <CardTitle>{county.name}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">

@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Politician } from '@/types';
-import { getAllPoliticians, searchPoliticians } from '@/lib/mock-data';
+import { getAllPoliticians, filterPoliticiansByRole, filterPoliticiansByParty, searchPoliticians, getParties } from '@/services/database';
 import { Filter, Plus, Search, Users } from 'lucide-react';
+import { DbParty } from '@/services/database';
 
 export default function PoliticiansList() {
   const [politicians, setPoliticians] = useState<Politician[]>([]);
@@ -17,16 +18,23 @@ export default function PoliticiansList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [partyFilter, setPartyFilter] = useState('all');
+  const [parties, setParties] = useState<DbParty[]>([]);
   
+  // Fetch initial data
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
         const data = await getAllPoliticians();
         setPoliticians(data);
         setFilteredPoliticians(data);
+        
+        // Fetch parties for dropdown
+        const partiesData = await getParties();
+        setParties(partiesData);
       } catch (err) {
+        console.error("Error fetching data:", err);
         setError('Failed to fetch politicians');
-        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -35,49 +43,47 @@ export default function PoliticiansList() {
     fetchData();
   }, []);
 
+  // Apply filters
   useEffect(() => {
-    if (!politicians.length) return;
-
-    let filtered = [...politicians];
+    const applyFilters = async () => {
+      try {
+        setLoading(true);
+        let result: Politician[] = [];
+        
+        // Handle search
+        if (searchQuery) {
+          result = await searchPoliticians(searchQuery);
+        } else {
+          result = [...politicians];
+        }
+        
+        // Apply role filter
+        if (roleFilter && roleFilter !== 'all') {
+          result = await filterPoliticiansByRole(roleFilter);
+        }
+        
+        // Apply party filter
+        if (partyFilter && partyFilter !== 'all') {
+          result = await filterPoliticiansByParty(partyFilter);
+        }
+        
+        setFilteredPoliticians(result);
+      } catch (err) {
+        console.error("Error applying filters:", err);
+        setError('Failed to apply filters');
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    // Apply search filter
-    if (searchQuery) {
-      filtered = filtered.filter(p => 
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.currentRole.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.county && p.county.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
+    if (politicians.length > 0) {
+      applyFilters();
     }
-    
-    // Apply role filter
-    if (roleFilter && roleFilter !== 'all') {
-      filtered = filtered.filter(p => 
-        p.currentRole.title.toLowerCase() === roleFilter.toLowerCase()
-      );
-    }
-    
-    // Apply party filter
-    if (partyFilter && partyFilter !== 'all') {
-      filtered = filtered.filter(p => 
-        p.parties.some(party => 
-          party.name.toLowerCase() === partyFilter.toLowerCase() && party.isCurrent
-        )
-      );
-    }
-    
-    setFilteredPoliticians(filtered);
-  }, [searchQuery, roleFilter, partyFilter, politicians]);
+  }, [searchQuery, roleFilter, partyFilter]);
 
   // Extract unique roles for the filter
   const uniqueRoles = Array.from(new Set(
     politicians.map(p => p.currentRole.title)
-  )).sort();
-  
-  // Extract unique parties for the filter
-  const uniqueParties = Array.from(new Set(
-    politicians.flatMap(p => 
-      p.parties.filter(party => party.isCurrent).map(party => party.name)
-    )
   )).sort();
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,8 +176,8 @@ export default function PoliticiansList() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Parties</SelectItem>
-            {uniqueParties.map(party => (
-              <SelectItem key={party} value={party}>{party}</SelectItem>
+            {parties.map(party => (
+              <SelectItem key={party.id} value={party.name}>{party.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -250,4 +256,3 @@ export default function PoliticiansList() {
     </div>
   );
 }
-

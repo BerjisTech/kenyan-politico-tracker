@@ -12,28 +12,35 @@ import CountiesList from "./pages/CountiesList";
 import PartiesList from "./pages/PartiesList";
 import SearchResults from "./pages/SearchResults";
 import NotFound from "./pages/NotFound";
+import Index from "./pages/Index";
+import AuthPage from "./pages/auth/AuthPage";
+import { AuthProvider } from "./context/AuthContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/politicians" element={<PoliticiansList />} />
-            <Route path="/politicians/:id" element={<PoliticianDetail />} />
-            <Route path="/counties" element={<CountiesList />} />
-            <Route path="/parties" element={<PartiesList />} />
-            <Route path="/search" element={<SearchResults />} />
-            <Route path="*" element={<NotFound />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/auth" element={<AuthPage />} />
+            <Route element={<Layout />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/politicians" element={<PoliticiansList />} />
+              <Route path="/politicians/:id" element={<PoliticianDetail />} />
+              <Route path="/counties" element={<CountiesList />} />
+              <Route path="/parties" element={<PartiesList />} />
+              <Route path="/search" element={<SearchResults />} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
