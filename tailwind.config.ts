@@ -63,7 +63,7 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Kenya colors
+				// Kenya flag colors
 				kenya: {
 					red: '#FF0000',
 					green: '#006600',
