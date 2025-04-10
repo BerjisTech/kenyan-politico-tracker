@@ -95,6 +95,24 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  .shadow-text {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  }
+  
+  .header-hidden header {
+    @apply hidden;
+  }
+  
+  /* Snap scrolling styles */
+  .snap-y {
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+  }
+  
+  .snap-start {
+    scroll-snap-align: start;
+  }
 }
 
 /* Custom scrollbar */
