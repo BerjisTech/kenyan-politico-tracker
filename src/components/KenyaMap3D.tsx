@@ -3,12 +3,22 @@ import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
-import { Vector3 } from 'three';
+import { Vector3, Euler } from 'three';
 
 // Create a simplified Kenya map shape
-const KenyaMapShape = ({ position = [0, 0, 0], rotation = [0, 0, 0], scale = 1, viewMode = 'front' }) => {
-  const meshRef = useRef();
-  const targetRotation = useRef(new THREE.Euler().fromArray(rotation));
+const KenyaMapShape = ({ 
+  position = [0, 0, 0], 
+  rotation = [0, 0, 0], 
+  scale = 1, 
+  viewMode = 'front' 
+}: { 
+  position?: [number, number, number],
+  rotation?: [number, number, number],
+  scale?: number,
+  viewMode?: string
+}) => {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const targetRotation = useRef(new THREE.Euler(...rotation));
   
   // Define Kenya's rough shape as a custom geometry
   useEffect(() => {
@@ -36,7 +46,7 @@ const KenyaMapShape = ({ position = [0, 0, 0], rotation = [0, 0, 0], scale = 1, 
   });
   
   return (
-    <group position={position} scale={scale}>
+    <group position={new THREE.Vector3(...position)} scale={scale}>
       <mesh ref={meshRef}>
         <meshStandardMaterial 
           color="#FF0000" 
@@ -89,8 +99,12 @@ const createKenyaShape = () => {
 };
 
 // Main 3D Kenya map component
-const KenyaMap3D = ({ viewMode = 'front', visible = true, flying = false }) => {
-  const mapRef = useRef();
+const KenyaMap3D = ({ viewMode = 'front', visible = true, flying = false }: {
+  viewMode?: string,
+  visible?: boolean,
+  flying?: boolean
+}) => {
+  const mapRef = useRef<THREE.Group>(null);
   const targetPosition = useRef(new Vector3(0, 0, 0));
   
   useEffect(() => {
