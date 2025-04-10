@@ -25,14 +25,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<'superadmin' | 'admin' | 'staff' | 'user' | null>(null);
 
-  // Fetch user role from database
+  // Fetch user role from database using the RPC function
   const fetchUserRole = async (userId: string) => {
     try {
       const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
+        .rpc('get_user_role', { user_id: userId });
 
       if (error) {
         console.error("Error fetching user role:", error);
@@ -40,7 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (data) {
-        setUserRole(data.role as 'superadmin' | 'admin' | 'staff' | 'user');
+        setUserRole(data as 'superadmin' | 'admin' | 'staff' | 'user');
       } else {
         setUserRole('user'); // Default role
       }
