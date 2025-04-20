@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
@@ -33,8 +34,13 @@ const projectTimeline = [
 ];
 
 // Timeline item component with improved height and alignment
-const TimelineItem = ({ item, inView }) => {
+const TimelineItem = ({ item }) => {
   const isRight = item.position === "right";
+  const [ref, inView] = useInView({
+    triggerOnce: false,
+    threshold: 0.2,
+    rootMargin: "-100px 0px"
+  });
   
   return (
     <div className={`flex w-full ${isRight ? 'justify-end' : ''} min-h-[70vh] relative items-center`}>
@@ -45,7 +51,6 @@ const TimelineItem = ({ item, inView }) => {
           initial={{ scale: 0 }}
           animate={inView ? { scale: 1 } : { scale: 0 }}
           transition={{ 
-            delay: 0.2 + (item.id * 0.1), 
             type: "spring", 
             stiffness: 200, 
             damping: 15 
@@ -55,10 +60,10 @@ const TimelineItem = ({ item, inView }) => {
       </div>
       
       <motion.div 
+        ref={ref}
         initial={{ opacity: 0, x: isRight ? 100 : -100 }}
         animate={inView ? { opacity: 1, x: 0 } : { opacity: 0, x: isRight ? 100 : -100 }}
         transition={{ 
-          delay: 0.3 + (item.id * 0.1), 
           type: "spring", 
           stiffness: 100, 
           damping: 15 
@@ -84,7 +89,7 @@ const TimelineItem = ({ item, inView }) => {
 };
 
 const ProjectsSection = () => {
-  const [ref, inView] = useInView({
+  const [sectionRef, sectionInView] = useInView({
     triggerOnce: false,
     threshold: 0.1,
   });
@@ -95,7 +100,7 @@ const ProjectsSection = () => {
         <div className="text-center mb-20">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
-            animate={inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
+            animate={sectionInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
             transition={{ 
               duration: 0.7, 
               type: "spring", 
@@ -108,9 +113,9 @@ const ProjectsSection = () => {
           </motion.div>
           
           <motion.h2
-            ref={ref} 
+            ref={sectionRef} 
             initial={{ opacity: 0, y: 20 }}
-            animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            animate={sectionInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{ 
               delay: 0.1,
               duration: 0.7, 
@@ -125,7 +130,7 @@ const ProjectsSection = () => {
           
           <motion.p
             initial={{ opacity: 0, y: 20 }}
-            animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            animate={sectionInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{ 
               delay: 0.2,
               duration: 0.7, 
@@ -142,13 +147,13 @@ const ProjectsSection = () => {
         <div className="relative max-w-6xl mx-auto">
           {/* Timeline */}
           {projectTimeline.map((item) => (
-            <TimelineItem key={item.id} item={item} inView={inView} />
+            <TimelineItem key={item.id} item={item} />
           ))}
           
           {/* See all projects button */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
-            animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+            animate={sectionInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
             transition={{ 
               delay: 0.8,
               duration: 0.7, 
