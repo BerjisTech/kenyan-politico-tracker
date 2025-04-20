@@ -2,10 +2,10 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import { ClipboardList, Calendar, ArrowRight } from "lucide-react";
+import { ClipboardList, Calendar, ArrowRight, Rocket, Map, Package, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Define project timeline data
+// Define project timeline data with vector info
 const projectTimeline = [
   {
     id: 1,
@@ -13,7 +13,9 @@ const projectTimeline = [
     date: "2020-2023",
     description: "27.1km elevated highway connecting JKIA to Westlands",
     status: "Completed",
-    position: "right"
+    position: "right",
+    vector: <Rocket className="w-32 h-32 text-amber-500" />,
+    vectorPosition: "same" // vector appears on same side as text
   },
   {
     id: 2,
@@ -21,7 +23,9 @@ const projectTimeline = [
     date: "2017-2021",
     description: "Extension of the railway line from Nairobi to Naivasha",
     status: "Completed",
-    position: "left"
+    position: "left",
+    vector: <Compass className="w-32 h-32 text-amber-500" />,
+    vectorPosition: "opposite" // vector appears opposite to text
   },
   {
     id: 3,
@@ -29,11 +33,13 @@ const projectTimeline = [
     date: "2019-2022",
     description: "New offshore terminal at the Port of Mombasa",
     status: "In Progress",
-    position: "right"
+    position: "right",
+    vector: <Package className="w-32 h-32 text-amber-500" />,
+    vectorPosition: "none" // no vector
   }
 ];
 
-// Timeline item component with improved height and alignment
+// Timeline item component with vector illustrations
 const TimelineItem = ({ item }) => {
   const isRight = item.position === "right";
   const [ref, inView] = useInView({
@@ -42,8 +48,43 @@ const TimelineItem = ({ item }) => {
     rootMargin: "-100px 0px"
   });
   
+  const renderVector = () => {
+    if (item.vectorPosition === "none") return null;
+    
+    const vectorElement = (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.5 }}
+        transition={{ 
+          type: "spring", 
+          stiffness: 100, 
+          damping: 15 
+        }}
+        className="flex items-center justify-center p-8"
+      >
+        {item.vector}
+      </motion.div>
+    );
+    
+    if (item.vectorPosition === "same") {
+      return (
+        <div className={`w-[45%] ${isRight ? 'ml-auto' : 'mr-auto'}`}>
+          {vectorElement}
+        </div>
+      );
+    }
+    
+    return (
+      <div className={`w-[45%] ${!isRight ? 'ml-auto' : 'mr-auto'}`}>
+        {vectorElement}
+      </div>
+    );
+  };
+  
   return (
-    <div className={`flex w-full ${isRight ? 'justify-end' : ''} min-h-[70vh] relative items-center`}>
+    <div className={`flex w-full min-h-[70vh] relative items-center ${
+      item.vectorPosition === "same" ? "flex-col" : ""
+    }`}>
       {/* Timeline center line */}
       <div className="absolute left-1/2 -translate-x-1/2 h-full">
         <div className="h-full w-0.5 bg-amber-400"></div>
@@ -59,6 +100,8 @@ const TimelineItem = ({ item }) => {
         />
       </div>
       
+      {/* Content */}
+      {item.vectorPosition === "opposite" && isRight && renderVector()}
       <motion.div 
         ref={ref}
         initial={{ opacity: 0, x: isRight ? 100 : -100 }}
@@ -84,6 +127,8 @@ const TimelineItem = ({ item }) => {
         </div>
         <p className="text-muted-foreground text-lg leading-relaxed">{item.description}</p>
       </motion.div>
+      {item.vectorPosition === "opposite" && !isRight && renderVector()}
+      {item.vectorPosition === "same" && renderVector()}
     </div>
   );
 };
