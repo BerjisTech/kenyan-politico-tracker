@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
@@ -33,13 +32,13 @@ const projectTimeline = [
   }
 ];
 
-// Timeline item component
+// Timeline item component with improved height and alignment
 const TimelineItem = ({ item, inView }) => {
   const isRight = item.position === "right";
   
   return (
-    <div className={`flex w-full ${isRight ? 'justify-end' : ''} mb-16 relative`}>
-      {/* Timeline center */}
+    <div className={`flex w-full ${isRight ? 'justify-end' : ''} min-h-[70vh] relative items-center`}>
+      {/* Timeline center line */}
       <div className="absolute left-1/2 -translate-x-1/2 h-full">
         <div className="h-full w-0.5 bg-amber-400"></div>
         <motion.div 
@@ -51,7 +50,7 @@ const TimelineItem = ({ item, inView }) => {
             stiffness: 200, 
             damping: 15 
           }}
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-amber-500 border-2 border-white"
+          className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-amber-500 border-2 border-white"
         />
       </div>
       
@@ -64,21 +63,21 @@ const TimelineItem = ({ item, inView }) => {
           stiffness: 100, 
           damping: 15 
         }}
-        className={`w-[45%] p-5 bg-white rounded-lg shadow-md ${isRight ? 'ml-auto' : 'mr-auto'}`}
+        className={`w-[45%] p-8 bg-white rounded-lg shadow-md ${isRight ? 'ml-auto' : 'mr-auto'}`}
       >
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="font-bold text-lg">{item.title}</h3>
-          <span className={`text-xs py-1 px-2 rounded-full ${
+        <div className="flex justify-between items-start mb-4">
+          <h3 className="font-bold text-xl">{item.title}</h3>
+          <span className={`text-sm py-1 px-3 rounded-full ${
             item.status === "Completed" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
           }`}>
             {item.status}
           </span>
         </div>
-        <div className="flex items-center text-sm text-muted-foreground mb-2">
-          <Calendar className="w-4 h-4 mr-1" />
+        <div className="flex items-center text-base text-muted-foreground mb-4">
+          <Calendar className="w-5 h-5 mr-2" />
           <span>{item.date}</span>
         </div>
-        <p className="text-muted-foreground">{item.description}</p>
+        <p className="text-muted-foreground text-lg leading-relaxed">{item.description}</p>
       </motion.div>
     </div>
   );
@@ -91,9 +90,9 @@ const ProjectsSection = () => {
   });
 
   return (
-    <section className="relative min-h-screen bg-slate-50 py-20">
+    <section className="relative py-20 bg-slate-50">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
+        <div className="text-center mb-20">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={inView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
@@ -103,9 +102,9 @@ const ProjectsSection = () => {
               stiffness: 100, 
               damping: 10 
             }}
-            className="bg-amber-50 p-4 w-16 h-16 rounded-full mb-6 mx-auto flex items-center justify-center"
+            className="bg-amber-50 p-4 w-20 h-20 rounded-full mb-8 mx-auto flex items-center justify-center"
           >
-            <ClipboardList className="h-8 w-8 text-amber-600" />
+            <ClipboardList className="h-10 w-10 text-amber-600" />
           </motion.div>
           
           <motion.h2
@@ -119,7 +118,7 @@ const ProjectsSection = () => {
               stiffness: 100, 
               damping: 10 
             }}
-            className="text-4xl font-bold mb-4"
+            className="text-5xl font-bold mb-6"
           >
             1,500+ Projects Monitored
           </motion.h2>
@@ -134,13 +133,13 @@ const ProjectsSection = () => {
               stiffness: 100, 
               damping: 10 
             }}
-            className="text-lg text-muted-foreground max-w-3xl mx-auto"
+            className="text-xl text-muted-foreground max-w-4xl mx-auto"
           >
             Track the progress, budget, and impact of all major development projects across Kenya, from infrastructure to social programs.
           </motion.p>
         </div>
         
-        <div className="relative max-w-4xl mx-auto mt-24">
+        <div className="relative max-w-6xl mx-auto">
           {/* Timeline */}
           {projectTimeline.map((item) => (
             <TimelineItem key={item.id} item={item} inView={inView} />
@@ -157,11 +156,11 @@ const ProjectsSection = () => {
               stiffness: 100, 
               damping: 10 
             }}
-            className="flex justify-center mt-10"
+            className="flex justify-center mt-16"
           >
-            <Button variant="outline" className="group border-amber-600 text-amber-600 hover:text-amber-700 hover:bg-amber-50">
+            <Button variant="outline" size="lg" className="group border-amber-600 text-amber-600 hover:text-amber-700 hover:bg-amber-50">
               View All Projects 
-              <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </motion.div>
         </div>
