@@ -1,3 +1,4 @@
+
 import { Routes, Route } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
 import { Toaster } from "@/components/ui/sonner";
@@ -34,6 +35,7 @@ import AuthCallback from "@/pages/auth/AuthCallback";
 import CommunityHome from "@/pages/community/CommunityHome";
 import TopicPage from "@/pages/community/TopicPage";
 import PostCreate from "@/pages/community/PostCreate";
+import CommunityManagement from "@/pages/admin/CommunityManagement";
 
 export default function App() {
   return (
@@ -80,9 +82,11 @@ export default function App() {
             <Route path="parties" element={<PartiesManagement />} />
             <Route path="projects" element={<ProjectsManagement />} />
             <Route path="users" element={<UserManagement />} />
+            <Route path="community" element={<CommunityManagement />} />
 
-            <Route path="politician/create" element={<PoliticianCreate />} />
-            <Route path="politician/edit/:id" element={<PoliticianEdit />} />
+            {/* Fix politician routes to match the actual path structure */}
+            <Route path="politicians/create" element={<PoliticianCreate />} />
+            <Route path="politicians/edit/:id" element={<PoliticianEdit />} />
           </Route>
         </Routes>
         <Toaster position="top-center" />
