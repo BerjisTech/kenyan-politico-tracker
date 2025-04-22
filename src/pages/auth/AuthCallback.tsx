@@ -10,13 +10,28 @@ export default function AuthCallback() {
   
   useEffect(() => {
     const handleAuthCallback = async () => {
-      // The hash contains the token
-      const { error } = await supabase.auth.getSession();
+      // Get the current URL hash
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const error = hashParams.get('error');
+      const errorDescription = hashParams.get('error_description');
       
       if (error) {
         toast({
           title: "Authentication failed",
-          description: error.message,
+          description: errorDescription || error,
+          variant: "destructive",
+        });
+        navigate('/auth');
+        return;
+      }
+
+      // Process the session
+      const { error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        toast({
+          title: "Authentication failed",
+          description: sessionError.message,
           variant: "destructive",
         });
         navigate('/auth');
