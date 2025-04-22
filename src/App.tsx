@@ -1,16 +1,15 @@
-
 import { Routes, Route } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "./context/AuthContext";
 import { RoleGuard } from "./components/RoleGuard";
 import { ThemeProvider } from "./components/ThemeProvider";
+import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Pages
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
-import AdminLayout from "@/components/admin/AdminLayout";
 import DashboardRedirect from "@/pages/DashboardRedirect";
 import Dashboard from "@/pages/Dashboard";
 import PoliticiansList from "@/pages/PoliticiansList";

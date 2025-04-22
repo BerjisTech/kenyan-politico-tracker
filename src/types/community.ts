@@ -3,7 +3,7 @@ import { Database } from "@/integrations/supabase/types";
 
 export type PostType = "text" | "image" | "video" | "audio";
 export type VisibilityType = "public" | "private";
-export type ModerationAction = "ban" | "mute" | "remove";
+export type ModerationActionType = "ban" | "mute" | "remove";
 export type MemberRole = "member" | "moderator" | "admin";
 
 export interface Topic {
@@ -129,9 +129,9 @@ export interface MemberWithRole {
   };
 }
 
-export interface ModerationAction {
+export interface ModerationEvent {
   id: string;
-  action: ModerationAction;
+  action: ModerationActionType;
   target_user_id: string;
   performed_by: string;
   topic_id?: string;
