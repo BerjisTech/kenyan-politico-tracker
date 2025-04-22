@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,11 +24,9 @@ export default function PoliticiansList() {
   const [partyFilter, setPartyFilter] = useState('all');
   const [uniqueRoles, setUniqueRoles] = useState<string[]>([]);
   
-  // Use React Query to fetch politicians with optimized query
   const { data: politiciansData, isLoading: isLoadingPoliticians, error: politiciansError } = useQuery({
     queryKey: ['politicians-optimized'],
     queryFn: async () => {
-      // First, get politicians with their current roles and counties in a single query
       const { data: politicians, error } = await supabase
         .from('politicians')
         .select(`
@@ -40,7 +37,6 @@ export default function PoliticiansList() {
       
       if (error) throw error;
       
-      // Format data to match our Politician type
       return politicians.map(politician => ({
         id: politician.id,
         name: politician.name,
@@ -50,7 +46,7 @@ export default function PoliticiansList() {
         constituency: politician.constituency,
         ward: politician.ward,
         currentRole: {
-          id: politician.current_role_id || 'unknown',
+          id: politician.roles?.id || 'unknown',
           title: politician.roles?.title || 'Unknown Position',
           organization: politician.roles?.organization || 'Unknown Organization',
           startDate: politician.roles?.start_date,
@@ -67,7 +63,6 @@ export default function PoliticiansList() {
     }
   });
   
-  // Fetch parties for filtering
   const { data: parties } = useQuery({
     queryKey: ['parties-list'],
     queryFn: async () => {
@@ -77,7 +72,6 @@ export default function PoliticiansList() {
     }
   });
   
-  // Get politician details if ID is provided
   const { data: politicianDetails, isLoading: detailsLoading } = useQuery({
     queryKey: ['politician-details', politicianId],
     enabled: !!politicianId,
@@ -94,14 +88,12 @@ export default function PoliticiansList() {
       
       if (error) throw error;
       
-      // Get party affiliations
       const { data: partyAffiliations } = await supabase
         .from('party_affiliations')
         .select('*, parties:party_id(id, name)')
         .eq('politician_id', politicianId)
         .order('is_current', { ascending: false });
       
-      // Get projects count
       const { count: projectsCount } = await supabase
         .from('project_politicians')
         .select('*', { count: 'exact', head: true })
@@ -141,7 +133,6 @@ export default function PoliticiansList() {
   });
   
   useEffect(() => {
-    // When politician details are loaded, set selected politician
     if (politicianDetails) {
       setSelectedPolitician(politicianDetails);
     } else {
@@ -151,7 +142,6 @@ export default function PoliticiansList() {
   
   useEffect(() => {
     if (politiciansData) {
-      // Extract unique roles for filter dropdown
       const roles = Array.from(new Set(
         politiciansData
           .map(p => p.currentRole.title)
@@ -160,10 +150,8 @@ export default function PoliticiansList() {
       
       setUniqueRoles(roles);
       
-      // Apply filters
       let filtered = [...politiciansData];
       
-      // Apply search filter
       if (searchQuery) {
         filtered = filtered.filter(p => 
           p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -171,15 +159,11 @@ export default function PoliticiansList() {
         );
       }
       
-      // Apply role filter
       if (roleFilter && roleFilter !== 'all') {
         filtered = filtered.filter(p => 
           p.currentRole.title?.toLowerCase() === roleFilter.toLowerCase()
         );
       }
-      
-      // Party filter would require additional data fetching or pre-loaded party data
-      // For now, it's a placeholder that doesn't affect results
       
       setFilteredPoliticians(filtered);
     }
@@ -217,7 +201,6 @@ export default function PoliticiansList() {
         <h1 className="text-3xl font-bold tracking-tight">Politicians</h1>
       </div>
       
-      {/* Filter section - always visible */}
       <div className="space-y-6 bg-white p-6 rounded-lg border shadow-sm">
         <div className="grid gap-4 md:grid-cols-4">
           <div className="md:col-span-2">
@@ -353,7 +336,6 @@ export default function PoliticiansList() {
           )}
         </div>
 
-        {/* Politician Details Panel */}
         {selectedPolitician && (
           <div className="w-1/2 border rounded-lg bg-white shadow-sm sticky top-4 h-fit max-h-[calc(100vh-2rem)] overflow-y-auto">
             {detailsLoading ? (
