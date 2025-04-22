@@ -66,57 +66,59 @@ export default function UserManagement() {
       setLoading(true);
       setError(null);
       
-      // Avoiding direct table access that can trigger RLS recursion issues
-      // Instead using basic structure that we know exists
-      const { data, error: usersError } = await supabase.auth.admin.listUsers({
-        page,
-        perPage: itemsPerPage,
-      }).catch(() => {
-        // Fallback to direct query but with limited fields for safety
-        return supabase
-          .from('user_roles')
-          .select('user_id, role, created_at, updated_at')
-          .range((page - 1) * itemsPerPage, page * itemsPerPage - 1)
-          .order('created_at', { ascending: false });
-      });
-      
-      if (usersError) {
-        console.error("Error fetching users:", usersError);
-        throw usersError;
-      }
-      
-      // Transform data to match our interface
-      let transformedData: UserWithRole[] = [];
-      
-      if (data?.users) {
-        // Auth admin API returned data
-        transformedData = data.users.map(user => ({
-          user_id: user.id,
-          role: 'user', // Default role
-          created_at: user.created_at,
-          updated_at: user.updated_at
-        }));
+      try {
+        // First attempt: Use Supabase admin API
+        const { data, error: adminError } = await supabase.auth.admin.listUsers({
+          page,
+          perPage: itemsPerPage,
+        });
         
-        // Set count from auth metadata
-        setTotalCount(data.count || 0);
-      } else if (data) {
-        // Direct query returned data
-        transformedData = data;
+        if (adminError) throw adminError;
         
-        // Count total records for pagination
-        const { count, error: countError } = await supabase
-          .from('user_roles')
-          .select('user_id', { count: 'exact', head: true });
-        
-        if (countError) {
-          console.error("Error fetching user count:", countError);
-          throw countError;
+        // Successfully used admin API
+        if (data && 'users' in data) {
+          const transformedUsers: UserWithRole[] = data.users.map(user => ({
+            user_id: user.id,
+            role: 'user', // Default role
+            created_at: user.created_at,
+            updated_at: user.updated_at
+          }));
+          
+          setUsers(transformedUsers);
+          setTotalCount(data.count || 0);
+          return; // Exit early as we've handled this successfully
         }
-        
-        setTotalCount(count || 0);
+      } catch (adminError) {
+        console.log("Admin API not available, falling back to direct query");
+        // Fall through to the direct query method
       }
       
-      setUsers(transformedData);
+      // Fallback: Direct query to user_roles
+      const { data: directData, error: directError } = await supabase
+        .from('user_roles')
+        .select('user_id, role, created_at, updated_at')
+        .range((page - 1) * itemsPerPage, page * itemsPerPage - 1)
+        .order('created_at', { ascending: false });
+      
+      if (directError) {
+        console.error("Error fetching users:", directError);
+        throw directError;
+      }
+      
+      // Set users from direct query
+      setUsers(directData || []);
+      
+      // Count total records for pagination
+      const { count, error: countError } = await supabase
+        .from('user_roles')
+        .select('user_id', { count: 'exact', head: true });
+      
+      if (countError) {
+        console.error("Error fetching user count:", countError);
+        throw countError;
+      }
+      
+      setTotalCount(count || 0);
       
     } catch (error: any) {
       console.error('Error fetching users:', error);
