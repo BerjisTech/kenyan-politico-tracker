@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -65,11 +66,12 @@ export default function UserManagement() {
       setLoading(true);
       setError(null);
       
-      // Use RPC call to get users to avoid recursion
-      const { data: userData, error } = await supabase.rpc('get_users_with_roles', {
-        page_number: page,
-        page_size: itemsPerPage
-      });
+      // Use direct query with PostgreSQL functions instead of RPC
+      const { data: userData, error } = await supabase
+        .from('user_roles')
+        .select('user_id, role, created_at, updated_at')
+        .range((page - 1) * itemsPerPage, page * itemsPerPage - 1)
+        .order('created_at', { ascending: false });
       
       if (error) {
         console.error("Error fetching users:", error);
@@ -80,21 +82,23 @@ export default function UserManagement() {
       const typedUsers: UserWithRole[] = (userData || []).map(user => ({
         user_id: user.user_id,
         role: user.role as 'superadmin' | 'admin' | 'staff' | 'user',
-        created_at: user.created_at
+        created_at: user.created_at,
+        updated_at: user.updated_at
       }));
       
-      // Set users from RPC query
       setUsers(typedUsers);
       
       // Count total records for pagination
-      const { data: countData, error: countError } = await supabase.rpc('get_users_count');
+      const { count, error: countError } = await supabase
+        .from('user_roles')
+        .select('*', { count: 'exact', head: true });
       
       if (countError) {
         console.error("Error fetching user count:", countError);
         throw countError;
       }
       
-      setTotalCount(countData || 0);
+      setTotalCount(count || 0);
       
     } catch (error: any) {
       console.error('Error fetching users:', error);
@@ -107,11 +111,11 @@ export default function UserManagement() {
 
   const updateUserRole = async (userId: string, newRole: 'superadmin' | 'admin' | 'staff' | 'user') => {
     try {
-      // Use RPC to update role safely
-      const { error } = await supabase.rpc('update_user_role', {
-        p_user_id: userId,
-        p_role: newRole
-      });
+      // Use direct update instead of RPC
+      const { error } = await supabase
+        .from('user_roles')
+        .update({ role: newRole })
+        .eq('user_id', userId);
       
       if (error) throw error;
       
