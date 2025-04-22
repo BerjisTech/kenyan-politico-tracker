@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -66,19 +65,11 @@ export default function UserManagement() {
       setLoading(true);
       setError(null);
       
-      // Only superadmins can view all roles
-      if (userRole !== 'superadmin') {
-        setError("You don't have permission to view user roles");
-        setLoading(false);
-        return;
-      }
-
-      // Query user_roles directly - our RLS policies should now be correctly set up
-      const { data: userData, error } = await supabase
-        .from('user_roles')
-        .select('user_id, role, created_at, updated_at')
-        .range((page - 1) * itemsPerPage, page * itemsPerPage - 1)
-        .order('created_at', { ascending: false });
+      // Use RPC call to get users to avoid recursion
+      const { data: userData, error } = await supabase.rpc('get_users_with_roles', {
+        page_number: page,
+        page_size: itemsPerPage
+      });
       
       if (error) {
         console.error("Error fetching users:", error);
@@ -87,24 +78,23 @@ export default function UserManagement() {
       
       // Ensure the role value is correctly typed
       const typedUsers: UserWithRole[] = (userData || []).map(user => ({
-        ...user,
-        role: user.role as 'superadmin' | 'admin' | 'staff' | 'user'
+        user_id: user.user_id,
+        role: user.role as 'superadmin' | 'admin' | 'staff' | 'user',
+        created_at: user.created_at
       }));
       
-      // Set users from direct query
+      // Set users from RPC query
       setUsers(typedUsers);
       
       // Count total records for pagination
-      const { count, error: countError } = await supabase
-        .from('user_roles')
-        .select('user_id', { count: 'exact', head: true });
+      const { data: countData, error: countError } = await supabase.rpc('get_users_count');
       
       if (countError) {
         console.error("Error fetching user count:", countError);
         throw countError;
       }
       
-      setTotalCount(count || 0);
+      setTotalCount(countData || 0);
       
     } catch (error: any) {
       console.error('Error fetching users:', error);
@@ -117,11 +107,11 @@ export default function UserManagement() {
 
   const updateUserRole = async (userId: string, newRole: 'superadmin' | 'admin' | 'staff' | 'user') => {
     try {
-      // Direct update to user_roles table
-      const { error } = await supabase
-        .from('user_roles')
-        .update({ role: newRole })
-        .eq('user_id', userId);
+      // Use RPC to update role safely
+      const { error } = await supabase.rpc('update_user_role', {
+        p_user_id: userId,
+        p_role: newRole
+      });
       
       if (error) throw error;
       

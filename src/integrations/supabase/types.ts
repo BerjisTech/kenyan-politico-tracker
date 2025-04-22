@@ -1035,6 +1035,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_default_uuid: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
@@ -1052,6 +1056,10 @@ export type Database = {
       }
       is_admin_or_superadmin: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_superadmin: {
+        Args: { user_id: string }
         Returns: boolean
       }
     }

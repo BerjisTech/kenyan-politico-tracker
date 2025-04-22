@@ -173,17 +173,41 @@ export function PoliticianForm({ politician, isEditing = false }: PoliticianForm
         if (error) throw error;
         politicianId = politician.id;
         
-        const { error: roleError } = await supabase
-          .from('roles')
-          .update({
-            title: data.currentRole.title,
-            organization: data.currentRole.organization,
-            start_date: format(data.currentRole.startDate, 'yyyy-MM-dd'),
-            description: data.currentRole.description
-          })
-          .eq('id', politician.currentRole.id);
-        
-        if (roleError) throw roleError;
+        if (politician.currentRole && politician.currentRole.id && politician.currentRole.id !== "default") {
+          const { error: roleError } = await supabase
+            .from('roles')
+            .update({
+              title: data.currentRole.title,
+              organization: data.currentRole.organization,
+              start_date: format(data.currentRole.startDate, 'yyyy-MM-dd'),
+              description: data.currentRole.description
+            })
+            .eq('id', politician.currentRole.id);
+          
+          if (roleError) throw roleError;
+        } else {
+          const { data: currentRole, error: roleError } = await supabase
+            .from('roles')
+            .insert({
+              title: data.currentRole.title,
+              organization: data.currentRole.organization,
+              politician_id: politicianId,
+              start_date: format(data.currentRole.startDate, 'yyyy-MM-dd'),
+              is_current: true,
+              description: data.currentRole.description
+            })
+            .select('id')
+            .single();
+          
+          if (roleError) throw roleError;
+          
+          const { error: updateError } = await supabase
+            .from('politicians')
+            .update({ current_role_id: currentRole.id })
+            .eq('id', politicianId);
+          
+          if (updateError) throw updateError;
+        }
         
         toast.success('Politician updated successfully');
       } else {
