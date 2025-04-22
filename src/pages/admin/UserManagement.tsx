@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -78,7 +77,7 @@ export default function UserManagement() {
         return;
       }
       
-      // Set the total count for pagination
+      // Set the total count for pagination - handle both cases where total might be present or not
       setTotalCount(authUsers.total || 0);
       
       // Now get profiles data to enrich user information
