@@ -3,9 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
-
-// Using direct toast import for error messages only
-import { toast } from 'sonner';
+import { toast } from 'sonner'; // Directly import from sonner
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -21,11 +19,7 @@ export default function AuthCallback() {
           const errorDescription = hashParams.get('error_description');
           
           if (error) {
-            toast({
-              title: "Authentication failed",
-              description: errorDescription || error,
-              variant: "destructive",
-            });
+            toast.error(errorDescription || error); // Use toast.error instead
             navigate('/auth');
             return;
           }
@@ -39,11 +33,7 @@ export default function AuthCallback() {
             });
             
             if (sessionError) {
-              toast({
-                title: "Authentication failed",
-                description: sessionError.message,
-                variant: "destructive",
-              });
+              toast.error(sessionError.message); // Use toast.error
               navigate('/auth');
               return;
             }
@@ -54,11 +44,7 @@ export default function AuthCallback() {
           }
         } catch (err: any) {
           console.error("Error processing auth callback:", err);
-          toast({
-            title: "Authentication failed",
-            description: err.message || "An error occurred during authentication",
-            variant: "destructive",
-          });
+          toast.error(err.message || "An error occurred during authentication"); // Use toast.error
           navigate('/auth');
           return;
         }
@@ -68,11 +54,7 @@ export default function AuthCallback() {
       const { error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
-        toast({
-          title: "Authentication failed",
-          description: sessionError.message,
-          variant: "destructive",
-        });
+        toast.error(sessionError.message); // Use toast.error
         navigate('/auth');
       } else {
         // Don't show toast here - AuthContext will handle it
