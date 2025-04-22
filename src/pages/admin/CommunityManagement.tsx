@@ -68,7 +68,10 @@ function TopicsManagement() {
   const { data: topics, isLoading, error, refetch } = useQuery({
     queryKey: ['admin-topics'],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_topics_safely');
+      const { data, error } = await supabase
+        .from('topics')
+        .select('*')
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data as Topic[];

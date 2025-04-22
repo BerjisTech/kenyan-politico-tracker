@@ -262,29 +262,25 @@ export async function fetchTopics(options: {
     const { search, page = 1, pageSize = 10 } = options;
     const offset = (page - 1) * pageSize;
     
-    // Use the security definer function to avoid RLS recursion
-    let query = supabase.rpc('get_topics_safely', {
-      limit_num: pageSize,
-      offset_num: offset
-    });
+    // Make a direct query to topics table with proper filtering
+    let query = supabase
+      .from('topics')
+      .select('*')
+      .order('created_at', { ascending: false });
+      
+    if (search) {
+      query = query.ilike('name', `%${search}%`);
+    }
     
-    // Filter client-side if search is provided since our RPC function doesn't support filtering
-    let { data, error } = await query;
+    // Apply pagination
+    query = query.range(offset, offset + pageSize - 1);
+    
+    const { data: topics, error, count } = await query;
     
     if (error) {
       console.error('Error fetching topics:', error);
       toast.error('Failed to load topics');
       throw error;
-    }
-    
-    // Apply search filter client-side if needed
-    let topics = data as Topic[];
-    if (search && topics) {
-      const searchLower = search.toLowerCase();
-      topics = topics.filter(topic => 
-        topic.name.toLowerCase().includes(searchLower) || 
-        (topic.description && topic.description.toLowerCase().includes(searchLower))
-      );
     }
     
     // Get member counts for each topic
@@ -301,11 +297,12 @@ export async function fetchTopics(options: {
       }
     }
 
-    // Count total for pagination - a bit of a hack, but should work
-    const { data: allTopics, error: countError } = await supabase.rpc('get_topics_safely');
-    const totalCount = allTopics ? (search ? topics.length : allTopics.length) : 0;
+    // Get total count for pagination
+    const { count: totalCount, error: countError } = await supabase
+      .from('topics')
+      .select('*', { count: 'exact', head: true });
 
-    return { topics: topics || [], count: totalCount };
+    return { topics: topics as Topic[] || [], count: totalCount || 0 };
   } catch (error) {
     console.error('Error in fetchTopics:', error);
     toast.error('Failed to load topics');
@@ -315,7 +312,7 @@ export async function fetchTopics(options: {
 
 export async function fetchTopicById(id: string): Promise<Topic> {
   try {
-    // First try to get the topic directly
+    // Try to get the topic directly
     const { data, error } = await supabase
       .from('topics')
       .select('*')
@@ -324,32 +321,7 @@ export async function fetchTopicById(id: string): Promise<Topic> {
 
     if (error) {
       console.error('Error fetching topic directly:', error);
-      
-      // If direct access fails, try using the security definer function
-      const { data: allTopics, error: rpcError } = await supabase.rpc('get_topics_safely');
-      
-      if (rpcError) {
-        console.error('Error fetching topics via RPC:', rpcError);
-        toast.error('Failed to load topic');
-        throw rpcError;
-      }
-      
-      const topic = allTopics.find((t: any) => t.id === id);
-      if (!topic) {
-        throw new Error('Topic not found');
-      }
-      
-      // Get member count
-      const { count: memberCount, error: memberError } = await supabase
-        .from('topic_members')
-        .select('*', { count: 'exact' })
-        .eq('topic_id', id);
-
-      if (!memberError && topic) {
-        topic.member_count = memberCount;
-      }
-      
-      return topic as Topic;
+      throw error;
     }
 
     // Get member count
