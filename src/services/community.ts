@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Post, Comment, Topic, Group, Channel, Hashtag,
@@ -275,7 +276,7 @@ export async function fetchTopics(options: {
     // Apply pagination
     query = query.range(offset, offset + pageSize - 1);
     
-    const { data: topics, error, count } = await query;
+    const { data: topicsData, error, count } = await query;
     
     if (error) {
       console.error('Error fetching topics:', error);
@@ -283,9 +284,18 @@ export async function fetchTopics(options: {
       throw error;
     }
     
-    // Get member counts for each topic
-    if (topics) {
-      for (const topic of topics) {
+    // Get member counts for each topic and properly type the returned data
+    const topics: Topic[] = [];
+    
+    if (topicsData) {
+      for (const topicData of topicsData) {
+        // Create a proper Topic object with the right type
+        const topic: Topic = {
+          ...topicData as unknown as Topic,
+          member_count: 0 // Initialize with default
+        };
+        
+        // Get member count for this topic
         const { count: memberCount, error: memberError } = await supabase
           .from('topic_members')
           .select('*', { count: 'exact' })
@@ -294,6 +304,8 @@ export async function fetchTopics(options: {
         if (!memberError) {
           topic.member_count = memberCount;
         }
+        
+        topics.push(topic);
       }
     }
 
@@ -302,7 +314,7 @@ export async function fetchTopics(options: {
       .from('topics')
       .select('*', { count: 'exact', head: true });
 
-    return { topics: topics as Topic[] || [], count: totalCount || 0 };
+    return { topics: topics || [], count: totalCount || 0 };
   } catch (error) {
     console.error('Error in fetchTopics:', error);
     toast.error('Failed to load topics');
@@ -330,10 +342,11 @@ export async function fetchTopicById(id: string): Promise<Topic> {
       .select('*', { count: 'exact' })
       .eq('topic_id', id);
 
-    const topic = data as Topic;
-    if (!memberError) {
-      topic.member_count = memberCount;
-    }
+    // Create a proper Topic object with the correct type
+    const topic: Topic = {
+      ...data as unknown as Topic,
+      member_count: memberCount || 0
+    };
 
     return topic;
   } catch (error: any) {
