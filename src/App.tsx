@@ -23,7 +23,6 @@ import WardsManagement from "./pages/admin/WardsManagement";
 import ProjectsManagement from "./pages/admin/ProjectsManagement";
 import UserManagement from "./pages/admin/UserManagement";
 import NotFound from "./pages/NotFound";
-import Dashboard from "./pages/Dashboard";
 import PoliticianCreate from "./pages/forms/PoliticianCreate";
 import PoliticianEdit from "./pages/forms/PoliticianEdit";
 import Community from "./pages/Community";
@@ -40,7 +39,6 @@ export default function App() {
           <Route path="counties" element={<CountiesList />} />
           <Route path="counties/:id" element={<CountiesList />} />
           <Route path="search" element={<SearchResults />} />
-          <Route path="dashboard" element={<Dashboard />} />
           <Route path="community" element={<Community />} />
         </Route>
 

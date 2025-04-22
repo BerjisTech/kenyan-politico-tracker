@@ -47,7 +47,7 @@ const HeroSection = () => {
                 className="text-base px-8 py-6" 
                 onClick={() => isAdmin ? navigate('/admin') : navigate('/community')}
               >
-                {isAdmin ? 'Go to Dashboard' : 'Join Community'}
+                {isAdmin ? 'Go to Admin Panel' : 'Join Community'}
               </Button>
             </motion.div>
             <motion.div
