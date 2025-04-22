@@ -79,13 +79,14 @@ export default function UserManagement() {
         if (data && 'users' in data) {
           const transformedUsers: UserWithRole[] = data.users.map(user => ({
             user_id: user.id,
-            role: 'user', // Default role
+            role: 'user' as const, // Type assertion to specific literal type
             created_at: user.created_at,
             updated_at: user.updated_at
           }));
           
           setUsers(transformedUsers);
-          setTotalCount(data.count || 0);
+          // Safely access count property with optional chaining and fallback
+          setTotalCount('count' in data ? data.count || 0 : 0);
           return; // Exit early as we've handled this successfully
         }
       } catch (adminError) {
@@ -105,8 +106,14 @@ export default function UserManagement() {
         throw directError;
       }
       
+      // Ensure the role value is correctly typed
+      const typedUsers: UserWithRole[] = (directData || []).map(user => ({
+        ...user,
+        role: user.role as 'superadmin' | 'admin' | 'staff' | 'user'
+      }));
+      
       // Set users from direct query
-      setUsers(directData || []);
+      setUsers(typedUsers);
       
       // Count total records for pagination
       const { count, error: countError } = await supabase
