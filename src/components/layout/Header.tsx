@@ -26,6 +26,9 @@ export function Header() {
           <Link to="/parties" className="transition-colors hover:text-primary">
             Parties
           </Link>
+          <Link to="/community" className="transition-colors hover:text-primary">
+            Community
+          </Link>
         </nav>
 
         <div className="flex items-center space-x-4">
