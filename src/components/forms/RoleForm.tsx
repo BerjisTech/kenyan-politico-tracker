@@ -51,7 +51,7 @@ interface RoleFormProps {
 
 export function RoleForm({ role, politicianId, onSave, onCancel }: RoleFormProps) {
   const [loading, setLoading] = useState(false);
-  const isEditing = !!role;
+  const isEditing = !!role && role.id && role.id !== "default";
 
   const form = useForm<RoleFormValues>({
     resolver: zodResolver(roleFormSchema),
@@ -87,12 +87,12 @@ export function RoleForm({ role, politicianId, onSave, onCancel }: RoleFormProps
       
       let result;
       
-      if (isEditing) {
+      if (isEditing && role?.id) {
         // Update existing role
         const { data: updatedRole, error } = await supabase
           .from('roles')
           .update(roleData)
-          .eq('id', role!.id)
+          .eq('id', role.id)
           .select()
           .single();
         

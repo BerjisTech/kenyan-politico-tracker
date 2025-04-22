@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -66,48 +65,20 @@ export default function UserManagement() {
       setLoading(true);
       setError(null);
       
-      try {
-        // First attempt: Use Supabase admin API
-        const { data, error: adminError } = await supabase.auth.admin.listUsers({
-          page,
-          perPage: itemsPerPage,
-        });
-        
-        if (adminError) throw adminError;
-        
-        // Successfully used admin API
-        if (data && 'users' in data) {
-          const transformedUsers: UserWithRole[] = data.users.map(user => ({
-            user_id: user.id,
-            role: 'user' as const, // Type assertion to specific literal type
-            created_at: user.created_at,
-            updated_at: user.updated_at
-          }));
-          
-          setUsers(transformedUsers);
-          // Safely access count property with optional chaining and fallback
-          setTotalCount('count' in data ? data.count || 0 : 0);
-          return; // Exit early as we've handled this successfully
-        }
-      } catch (adminError) {
-        console.log("Admin API not available, falling back to direct query");
-        // Fall through to the direct query method
-      }
-      
-      // Fallback: Direct query to user_roles
-      const { data: directData, error: directError } = await supabase
+      // Use the RPC function instead to avoid infinite recursion
+      const { data: userData, error } = await supabase
         .from('user_roles')
         .select('user_id, role, created_at, updated_at')
         .range((page - 1) * itemsPerPage, page * itemsPerPage - 1)
         .order('created_at', { ascending: false });
       
-      if (directError) {
-        console.error("Error fetching users:", directError);
-        throw directError;
+      if (error) {
+        console.error("Error fetching users:", error);
+        throw error;
       }
       
       // Ensure the role value is correctly typed
-      const typedUsers: UserWithRole[] = (directData || []).map(user => ({
+      const typedUsers: UserWithRole[] = (userData || []).map(user => ({
         ...user,
         role: user.role as 'superadmin' | 'admin' | 'staff' | 'user'
       }));
@@ -138,11 +109,11 @@ export default function UserManagement() {
 
   const updateUserRole = async (userId: string, newRole: 'superadmin' | 'admin' | 'staff' | 'user') => {
     try {
-      // Use a simpler update approach to avoid RLS recursion
-      const { error } = await supabase
-        .from('user_roles')
-        .update({ role: newRole, updated_at: new Date().toISOString() })
-        .eq('user_id', userId);
+      // Call the RPC function to update role safely
+      const { error } = await supabase.rpc('update_user_role', {
+        p_user_id: userId,
+        p_role: newRole
+      });
       
       if (error) throw error;
       

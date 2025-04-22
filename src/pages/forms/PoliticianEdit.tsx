@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import { PoliticianForm } from '@/components/forms/PoliticianForm';
 import { getPoliticianById } from '@/services/database';
 import { Politician } from '@/types';
+import { toast } from 'sonner';
 
 export default function PoliticianEdit() {
   const { id } = useParams<{ id: string }>();
@@ -35,11 +36,20 @@ export default function PoliticianEdit() {
         if (!data) {
           setError('Politician not found');
         } else {
+          // Ensure data has proper structure to avoid "default" ID issues
+          if (data.currentRole && (!data.currentRole.id || data.currentRole.id === "default")) {
+            // Fix any invalid role IDs
+            data.currentRole = {
+              ...data.currentRole,
+              id: data.currentRole.id || undefined
+            };
+          }
           setPolitician(data);
         }
       } catch (err) {
         setError('Failed to fetch politician data');
         console.error('Error fetching politician by id:', err);
+        toast.error('Failed to load politician data');
       } finally {
         setLoading(false);
       }

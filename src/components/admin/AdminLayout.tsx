@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AdminHeader } from './AdminHeader';
 import { AdminSidebar } from './AdminSidebar';
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 interface AdminLayoutProps {
   className?: string;
@@ -12,6 +13,13 @@ interface AdminLayoutProps {
 export function AdminLayout({ className = "" }: AdminLayoutProps) {
   const [isSideBarCollapsed, setIsSideBarCollapsed] = useState(false);
   const { isAuthenticated, userRole, isLoading } = useAuth();
+  const navigate = useNavigate();
+  
+  // Prevent showing "signed in successfully" toast when in admin pages
+  useEffect(() => {
+    // Clear any pending toasts to prevent "signed in successfully" showing on refresh
+    toast.dismiss();
+  }, []);
 
   const toggleSidebar = () => {
     setIsSideBarCollapsed(prev => !prev);
