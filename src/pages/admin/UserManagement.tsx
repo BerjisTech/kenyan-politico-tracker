@@ -42,11 +42,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface UserWithRole {
   user_id: string;
-  email?: string;
-  created_at?: string;
   role: 'superadmin' | 'admin' | 'staff' | 'user';
-  first_name?: string;
-  last_name?: string;
+  updated_at?: string;
+  created_at?: string;
 }
 
 export default function UserManagement() {
@@ -68,25 +66,19 @@ export default function UserManagement() {
       setLoading(true);
       setError(null);
       
-      // First, get the user roles
-      const { data: roleData, error: roleError } = await supabase
+      // Simple query to get user roles with pagination
+      const { data, error: usersError } = await supabase
         .from('user_roles')
-        .select('user_id, role')
-        .range((page - 1) * itemsPerPage, page * itemsPerPage - 1);
+        .select('*')
+        .range((page - 1) * itemsPerPage, page * itemsPerPage - 1)
+        .order('created_at', { ascending: false });
       
-      if (roleError) {
-        console.error("Error fetching users with roles:", roleError);
-        throw roleError;
+      if (usersError) {
+        console.error("Error fetching users:", usersError);
+        throw usersError;
       }
       
-      if (!roleData || roleData.length === 0) {
-        setUsers([]);
-        setTotalCount(0);
-        setLoading(false);
-        return;
-      }
-      
-      // Get the count
+      // Get the total count for pagination
       const { count, error: countError } = await supabase
         .from('user_roles')
         .select('*', { count: 'exact', head: true });
@@ -97,30 +89,7 @@ export default function UserManagement() {
       }
       
       setTotalCount(count || 0);
-      
-      // Then, for each user role, get the profile information
-      const userWithProfiles: UserWithRole[] = [];
-      
-      for (const userRole of roleData) {
-        // Try to get the profile info
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('first_name, last_name, created_at')
-          .eq('id', userRole.user_id)
-          .single();
-        
-        // Combine the data
-        userWithProfiles.push({
-          user_id: userRole.user_id,
-          role: userRole.role as 'superadmin' | 'admin' | 'staff' | 'user',
-          email: `User ${userRole.user_id.substring(0, 8)}`,  // Placeholder email
-          created_at: profileData?.created_at || new Date().toISOString(),
-          first_name: profileData?.first_name || '',
-          last_name: profileData?.last_name || '',
-        });
-      }
-      
-      setUsers(userWithProfiles);
+      setUsers(data || []);
       
     } catch (error: any) {
       console.error('Error fetching users:', error);
@@ -133,7 +102,7 @@ export default function UserManagement() {
 
   const updateUserRole = async (userId: string, newRole: 'superadmin' | 'admin' | 'staff' | 'user') => {
     try {
-      // Use direct update instead of RPC
+      // Simple update query
       const { error } = await supabase
         .from('user_roles')
         .update({ role: newRole, updated_at: new Date().toISOString() })
@@ -222,9 +191,9 @@ export default function UserManagement() {
             <TableCaption>List of all users in the system</TableCaption>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Email/ID</TableHead>
+                <TableHead>User ID</TableHead>
                 <TableHead>Created At</TableHead>
+                <TableHead>Updated At</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -233,12 +202,10 @@ export default function UserManagement() {
               {users.map((user) => (
                 <TableRow key={user.user_id}>
                   <TableCell>
-                    {user.first_name || user.last_name ? 
-                      `${user.first_name || ''} ${user.last_name || ''}`.trim() : 
-                      'No name provided'}
+                    {user.user_id.substring(0, 8)}...
                   </TableCell>
-                  <TableCell>{user.email}</TableCell>
                   <TableCell>{user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}</TableCell>
+                  <TableCell>{user.updated_at ? new Date(user.updated_at).toLocaleDateString() : 'Never'}</TableCell>
                   <TableCell>{user.role}</TableCell>
                   <TableCell>
                     <Select
