@@ -15,7 +15,7 @@ const CTASection = () => {
   });
 
   return (
-    <section ref={ref} className="relative h-screen flex items-center">
+    <section ref={ref} className="relative min-h-screen flex items-center">
       <div className="container mx-auto px-4 z-10">
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
@@ -71,10 +71,10 @@ const CTASection = () => {
           >
             <Button 
               size="lg" 
-              onClick={() => user ? navigate('/dashboard') : navigate('/auth')}
+              onClick={() => navigate('/community')}
               className="text-lg px-10 py-8 bg-white text-kenya-black hover:bg-white/90"
             >
-              {user ? 'Access Dashboard' : 'Sign Up Now'}
+              Join Our Community
             </Button>
           </motion.div>
         </motion.div>
@@ -82,6 +82,39 @@ const CTASection = () => {
 
       {/* Overlay gradient */}
       <div className="absolute inset-0 bg-black/70 z-0"></div>
+      
+      {/* Footer */}
+      <footer className="absolute bottom-0 left-0 right-0 bg-black/80 text-white py-8 z-20">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div>
+              <h3 className="font-bold text-lg mb-4">About Us</h3>
+              <p className="text-sm text-white/70">
+                Political Baseline is dedicated to tracking and analyzing political data
+                in Kenya to promote transparency and accountability.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-bold text-lg mb-4">Quick Links</h3>
+              <ul className="space-y-2 text-sm text-white/70">
+                <li><Link to="/politicians" className="hover:text-white">Politicians</Link></li>
+                <li><Link to="/parties" className="hover:text-white">Political Parties</Link></li>
+                <li><Link to="/counties" className="hover:text-white">Counties</Link></li>
+                <li><Link to="/community" className="hover:text-white">Community</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-bold text-lg mb-4">Contact</h3>
+              <p className="text-sm text-white/70">
+                Have questions or suggestions? Join our community to get in touch.
+              </p>
+            </div>
+          </div>
+          <div className="mt-8 pt-8 border-t border-white/10 text-center text-sm text-white/50">
+            © {new Date().getFullYear()} Political Baseline. All rights reserved.
+          </div>
+        </div>
+      </footer>
     </section>
   );
 };

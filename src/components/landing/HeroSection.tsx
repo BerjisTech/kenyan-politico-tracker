@@ -7,8 +7,10 @@ import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const navigate = useNavigate();
+
+  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
 
   return (
     <section className="relative h-screen overflow-hidden">
@@ -43,9 +45,9 @@ const HeroSection = () => {
               <Button 
                 size="lg" 
                 className="text-base px-8 py-6" 
-                onClick={() => user ? navigate('/dashboard') : navigate('/auth')}
+                onClick={() => isAdmin ? navigate('/admin') : navigate('/community')}
               >
-                {user ? 'Go to Dashboard' : 'Join The Community'}
+                {isAdmin ? 'Go to Dashboard' : 'Join Community'}
               </Button>
             </motion.div>
             <motion.div

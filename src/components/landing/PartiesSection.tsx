@@ -1,15 +1,41 @@
-
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { Flag, PieChart, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { toast } from "react-toastify";
 
 const PartiesSection = () => {
   const [ref, inView] = useInView({
     triggerOnce: false,
     threshold: 0.1,
   });
+
+  const [parties, setParties] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchParties = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('parties')
+          .select('*')
+          .order('name', { ascending: true });
+
+        if (error) throw error;
+        setParties(data || []);
+      } catch (err) {
+        console.error("Error fetching parties:", err);
+        toast.error("Could not load parties data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchParties();
+  }, []);
 
   return (
     <section className="relative min-h-screen bg-white py-20 flex items-center">
@@ -94,73 +120,64 @@ const PartiesSection = () => {
             className="relative flex justify-center items-center"
           >
             <div className="relative w-[400px] h-[400px]">
-              {/* Party 1 */}
-              <motion.div
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={inView ? { scale: 1, opacity: 1 } : { scale: 0.5, opacity: 0 }}
-                transition={{ delay: 0.3, duration: 0.6, type: "spring", stiffness: 100, damping: 10 }}
-                className="absolute top-0 left-[25%] w-28 h-28 rounded-full bg-red-500 flex items-center justify-center"
-              >
-                <span className="text-white font-bold">Party A</span>
-              </motion.div>
-              
-              {/* Party 2 */}
-              <motion.div
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={inView ? { scale: 1, opacity: 1 } : { scale: 0.5, opacity: 0 }}
-                transition={{ delay: 0.4, duration: 0.6, type: "spring", stiffness: 100, damping: 10 }}
-                className="absolute top-[25%] right-0 w-24 h-24 rounded-full bg-blue-500 flex items-center justify-center"
-              >
-                <span className="text-white font-bold">Party B</span>
-              </motion.div>
-              
-              {/* Party 3 */}
-              <motion.div
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={inView ? { scale: 1, opacity: 1 } : { scale: 0.5, opacity: 0 }}
-                transition={{ delay: 0.5, duration: 0.6, type: "spring", stiffness: 100, damping: 10 }}
-                className="absolute bottom-[10%] right-[20%] w-32 h-32 rounded-full bg-green-500 flex items-center justify-center"
-              >
-                <span className="text-white font-bold">Party C</span>
-              </motion.div>
-              
-              {/* Party 4 */}
-              <motion.div
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={inView ? { scale: 1, opacity: 1 } : { scale: 0.5, opacity: 0 }}
-                transition={{ delay: 0.6, duration: 0.6, type: "spring", stiffness: 100, damping: 10 }}
-                className="absolute bottom-[30%] left-0 w-20 h-20 rounded-full bg-yellow-500 flex items-center justify-center"
-              >
-                <span className="text-white font-bold">Party D</span>
-              </motion.div>
+              {loading ? (
+                Array(4).fill(0).map((_, i) => (
+                  <div key={i} className="absolute w-24 h-24 rounded-full bg-slate-200 animate-pulse" 
+                       style={{
+                         top: `${Math.random() * 300}px`,
+                         left: `${Math.random() * 300}px`
+                       }}
+                  />
+                ))
+              ) : (
+                parties.slice(0, 4).map((party, index) => (
+                  <motion.div
+                    key={party.id}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={inView ? { scale: 1, opacity: 1 } : { scale: 0.5, opacity: 0 }}
+                    transition={{ delay: 0.3 + (index * 0.1), duration: 0.6, type: "spring", stiffness: 100, damping: 10 }}
+                    className={`absolute w-${28 - (index * 4)} h-${28 - (index * 4)} rounded-full ${
+                      ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500'][index]
+                    } flex items-center justify-center text-center p-4`}
+                    style={{
+                      top: ['0%', '25%', '10%', '30%'][index],
+                      left: ['25%', '0%', '20%', '0%'][index],
+                    }}
+                  >
+                    <span className="text-white font-bold text-sm">{party.name}</span>
+                  </motion.div>
+                ))
+              )}
               
               {/* Connection lines */}
-              <svg className="absolute inset-0 w-full h-full z-[-1]">
-                <motion.line 
-                  initial={{ pathLength: 0 }}
-                  animate={inView ? { pathLength: 1 } : { pathLength: 0 }}
-                  transition={{ delay: 0.7, duration: 0.6 }}
-                  x1="150" y1="50" x2="300" y2="150" 
-                  stroke="#718096" strokeWidth="2" strokeDasharray="5,5" />
-                <motion.line 
-                  initial={{ pathLength: 0 }}
-                  animate={inView ? { pathLength: 1 } : { pathLength: 0 }}
-                  transition={{ delay: 0.8, duration: 0.6 }}
-                  x1="300" y1="150" x2="250" y2="300" 
-                  stroke="#718096" strokeWidth="2" strokeDasharray="5,5" />
-                <motion.line 
-                  initial={{ pathLength: 0 }}
-                  animate={inView ? { pathLength: 1 } : { pathLength: 0 }}
-                  transition={{ delay: 0.9, duration: 0.6 }}
-                  x1="250" y1="300" x2="50" y2="250" 
-                  stroke="#718096" strokeWidth="2" strokeDasharray="5,5" />
-                <motion.line 
-                  initial={{ pathLength: 0 }}
-                  animate={inView ? { pathLength: 1 } : { pathLength: 0 }}
-                  transition={{ delay: 1.0, duration: 0.6 }}
-                  x1="50" y1="250" x2="150" y2="50" 
-                  stroke="#718096" strokeWidth="2" strokeDasharray="5,5" />
-              </svg>
+              {!loading && parties.length > 0 && (
+                <svg className="absolute inset-0 w-full h-full z-[-1]">
+                  <motion.line 
+                    initial={{ pathLength: 0 }}
+                    animate={inView ? { pathLength: 1 } : { pathLength: 0 }}
+                    transition={{ delay: 0.7, duration: 0.6 }}
+                    x1="150" y1="50" x2="300" y2="150" 
+                    stroke="#718096" strokeWidth="2" strokeDasharray="5,5" />
+                  <motion.line 
+                    initial={{ pathLength: 0 }}
+                    animate={inView ? { pathLength: 1 } : { pathLength: 0 }}
+                    transition={{ delay: 0.8, duration: 0.6 }}
+                    x1="300" y1="150" x2="250" y2="300" 
+                    stroke="#718096" strokeWidth="2" strokeDasharray="5,5" />
+                  <motion.line 
+                    initial={{ pathLength: 0 }}
+                    animate={inView ? { pathLength: 1 } : { pathLength: 0 }}
+                    transition={{ delay: 0.9, duration: 0.6 }}
+                    x1="250" y1="300" x2="50" y2="250" 
+                    stroke="#718096" strokeWidth="2" strokeDasharray="5,5" />
+                  <motion.line 
+                    initial={{ pathLength: 0 }}
+                    animate={inView ? { pathLength: 1 } : { pathLength: 0 }}
+                    transition={{ delay: 1.0, duration: 0.6 }}
+                    x1="50" y1="250" x2="150" y2="50" 
+                    stroke="#718096" strokeWidth="2" strokeDasharray="5,5" />
+                </svg>
+              )}
             </div>
           </motion.div>
         </div>
