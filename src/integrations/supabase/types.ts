@@ -548,6 +548,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      get_user_role_safely: {
+        Args: { user_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           user_id: string

@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchUserRole = async (userId: string) => {
     try {
       const { data, error } = await supabase
-        .rpc('get_user_role', { user_id: userId });
+        .rpc('get_user_role_safely', { user_id: userId });
 
       if (error) {
         console.error("Error fetching user role:", error);
