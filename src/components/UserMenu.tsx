@@ -15,7 +15,6 @@ import { useAuth } from "@/context/AuthContext";
 import { signOut } from "@/services/auth";
 import { Link } from "react-router-dom";
 import { LogIn, LogOut, Shield, User, UserPlus, Users } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
 
 export function UserMenu() {
   const { user, isAuthenticated, userRole } = useAuth();
@@ -34,6 +33,9 @@ export function UserMenu() {
     }
     return user?.email?.charAt(0).toUpperCase() || 'U';
   };
+
+  // Ensure proper role display
+  const displayRole = userRole || 'user';
 
   return isAuthenticated ? (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -54,11 +56,9 @@ export function UserMenu() {
             <p className="text-xs leading-none text-muted-foreground">
               {user?.email}
             </p>
-            {userRole && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Role: <span className="font-medium capitalize">{userRole}</span>
-              </p>
-            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              Role: <span className="font-medium capitalize">{displayRole}</span>
+            </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -68,7 +68,7 @@ export function UserMenu() {
             <span>Profile</span>
           </DropdownMenuItem>
           
-          {userRole === 'superadmin' && (
+          {displayRole === 'superadmin' && (
             <DropdownMenuItem asChild>
               <Link to="/admin/users">
                 <Users className="mr-2 h-4 w-4" />
@@ -77,7 +77,7 @@ export function UserMenu() {
             </DropdownMenuItem>
           )}
 
-          {userRole && ['superadmin', 'admin'].includes(userRole) && (
+          {(displayRole === 'superadmin' || displayRole === 'admin') && (
             <DropdownMenuItem asChild>
               <Link to="/admin">
                 <Shield className="mr-2 h-4 w-4" />

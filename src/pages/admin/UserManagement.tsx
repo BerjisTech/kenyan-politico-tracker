@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,7 +35,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface UserWithRole {
   id: string;
@@ -53,6 +55,7 @@ export default function UserManagement() {
   const { userRole, user: currentUser } = useAuth();
   const navigate = useNavigate();
   const itemsPerPage = 10;
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -61,56 +64,61 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      // Get all users from auth.users first
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers({
-        page: page,
-        perPage: itemsPerPage
-      });
+      // Instead of using auth.admin.listUsers which requires special permissions,
+      // use a custom implementation that works with the access we have
       
-      if (authError) throw authError;
+      // First get all user IDs from user_roles table
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .range((page - 1) * itemsPerPage, page * itemsPerPage - 1);
       
-      if (!authUsers || !authUsers.users) {
+      if (roleError) throw roleError;
+      
+      if (!roleData || roleData.length === 0) {
         setUsers([]);
         setTotalCount(0);
         setLoading(false);
         return;
       }
       
-      // Set the total count for pagination, safely handle different response formats
-      if ('total' in authUsers) {
-        setTotalCount(authUsers.total || 0);
-      } else {
-        // Fallback if total is not available
-        setTotalCount(authUsers.users.length);
-      }
+      // Get the count for pagination
+      const { count, error: countError } = await supabase
+        .from('user_roles')
+        .select('*', { count: 'exact', head: true });
       
-      // Now get profiles data to enrich user information
-      const profilesPromises = authUsers.users.map(async (authUser) => {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('first_name, last_name')
-          .eq('id', authUser.id)
-          .single();
-
-        // Get user role
-        const { data: roleData } = await supabase
-          .rpc('get_user_role_safely', { user_id: authUser.id });
-        
-        return {
-          id: authUser.id,
-          email: authUser.email || 'No email',
-          created_at: authUser.created_at,
-          role: (roleData as 'superadmin' | 'admin' | 'staff' | 'user') || 'user',
-          first_name: profileData?.first_name,
-          last_name: profileData?.last_name,
-        };
-      });
+      if (countError) throw countError;
       
-      const usersWithRoles = await Promise.all(profilesPromises);
-      setUsers(usersWithRoles);
-    } catch (error) {
+      setTotalCount(count || 0);
+      
+      // Get user profiles for each user ID
+      const userProfiles = await Promise.all(
+        roleData.map(async (item) => {
+          // Get profile data
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, email, created_at')
+            .eq('id', item.user_id)
+            .single();
+          
+          return {
+            id: item.user_id,
+            email: profileData?.email || 'No email',
+            created_at: profileData?.created_at || new Date().toISOString(),
+            role: item.role as 'superadmin' | 'admin' | 'staff' | 'user',
+            first_name: profileData?.first_name,
+            last_name: profileData?.last_name,
+          };
+        })
+      );
+      
+      setUsers(userProfiles);
+      
+    } catch (error: any) {
       console.error('Error fetching users:', error);
+      setError(error.message || 'Failed to load users');
       toast.error('Failed to load users. You may not have the required permissions.');
     } finally {
       setLoading(false);
@@ -119,28 +127,13 @@ export default function UserManagement() {
 
   const updateUserRole = async (userId: string, newRole: 'superadmin' | 'admin' | 'staff' | 'user') => {
     try {
-      // Use the Supabase URL and Anon key from the environment variables
-      const SUPABASE_URL = "https://tsgatxcialgoepfbwtgk.supabase.co";
-      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzZ2F0eGNpYWxnb2VwZmJ3dGdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyODIyODUsImV4cCI6MjA1OTg1ODI4NX0.096fGcTQBJxXDcYoc5lbLH4m_-6vkyiqcJTiwAzxOdQ";
-      
-      // Instead of directly updating the user_roles table, use a SERVER function that bypasses RLS
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/update_user_role`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({
-          p_user_id: userId,
-          p_role: newRole
-        })
+      // Use server functions with RPC instead of direct API call
+      const { error } = await supabase.rpc('update_user_role', {
+        p_user_id: userId,
+        p_role: newRole
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to update user role');
-      }
+      if (error) throw error;
       
       // Update local state
       setUsers(users.map(user => 
@@ -148,7 +141,7 @@ export default function UserManagement() {
       ));
       
       toast.success(`User role updated to ${newRole}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating user role:', error);
       toast.error('Failed to update user role');
     }
@@ -200,6 +193,16 @@ export default function UserManagement() {
         As a superadmin, you can manage user roles in the system. 
         Changes to user roles take effect immediately.
       </p>
+
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            {error}
+          </AlertDescription>
+        </Alert>
+      )}
       
       {loading ? (
         <div className="flex justify-center p-8">
@@ -240,7 +243,7 @@ export default function UserManagement() {
                           value as 'superadmin' | 'admin' | 'staff' | 'user'
                         )
                       }
-                      disabled={user.id === currentUser?.id && userRole === 'superadmin'}
+                      disabled={user.id === currentUser?.id}
                     >
                       <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Select role" />

@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface AuthContextProps {
   user: User | null;
@@ -25,24 +26,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<'superadmin' | 'admin' | 'staff' | 'user' | null>(null);
 
-  // Fetch user role from database using the RPC function
+  // Fetch user role from database using the user_roles table
   const fetchUserRole = async (userId: string) => {
     try {
+      // This query gets the role directly from user_roles table
       const { data, error } = await supabase
-        .rpc('get_user_role_safely', { user_id: userId });
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
 
       if (error) {
         console.error("Error fetching user role:", error);
+        // If no role is found, set default role to 'user'
+        setUserRole('user');
         return;
       }
 
-      if (data) {
-        setUserRole(data as 'superadmin' | 'admin' | 'staff' | 'user');
+      if (data?.role) {
+        setUserRole(data.role as 'superadmin' | 'admin' | 'staff' | 'user');
       } else {
         setUserRole('user'); // Default role
       }
     } catch (error) {
       console.error("Error fetching user role:", error);
+      setUserRole('user'); // Default role in case of errors
     }
   };
 
@@ -50,6 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        // Update session and user state
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
@@ -60,6 +69,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }, 0);
         } else {
           setUserRole(null);
+        }
+        
+        // Show toast notifications for auth events
+        if (event === 'SIGNED_IN') {
+          toast.success('Signed in successfully.');
+        } else if (event === 'SIGNED_OUT') {
+          toast.success('Signed out successfully.');
         }
         
         setIsLoading(false);
