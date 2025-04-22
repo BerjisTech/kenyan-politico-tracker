@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Post, Comment, Topic, Group, Channel, Hashtag,
-  MemberWithRole, ModerationAction, PostType
+  MemberWithRole, ModerationActionType, PostType
 } from "@/types/community";
 import { toast } from "sonner";
 
