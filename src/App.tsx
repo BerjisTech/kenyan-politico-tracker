@@ -1,7 +1,7 @@
 
 import { Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "./components/ThemeProvider";
-import Layout from "./components/layout/Layout";
+import { Layout } from "./components/layout/Layout";
 import Index from "./pages/Index";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
@@ -13,7 +13,7 @@ import SearchResults from "./pages/SearchResults";
 import AuthPage from "./pages/auth/AuthPage";
 import AuthCallback from "./pages/auth/AuthCallback";
 import { RoleGuard } from "./components/RoleGuard";
-import AdminLayout from "./components/admin/AdminLayout";
+import { AdminLayout } from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import PoliticiansManagement from "./pages/admin/PoliticiansManagement";
 import PartiesManagement from "./pages/admin/PartiesManagement";
@@ -52,7 +52,7 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            <RoleGuard requiredRole="admin">
+            <RoleGuard allowedRoles={['admin', 'superadmin']}>
               <AdminLayout />
             </RoleGuard>
           }
@@ -67,7 +67,7 @@ export default function App() {
           <Route
             path="users"
             element={
-              <RoleGuard requiredRole="superadmin">
+              <RoleGuard allowedRoles={['superadmin']}>
                 <UserManagement />
               </RoleGuard>
             }

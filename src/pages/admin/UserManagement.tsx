@@ -29,6 +29,13 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { RefreshCw } from 'lucide-react';
 
 interface UserWithRole {
   id: string;
@@ -56,55 +63,51 @@ export default function UserManagement() {
     try {
       setLoading(true);
       
-      // Get users count first (for pagination)
-      const { count } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+      // Get all users from auth.users first
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers({
+        page: page,
+        perPage: itemsPerPage
+      });
       
-      setTotalCount(count || 0);
+      if (authError) throw authError;
       
-      // Then get paginated profiles
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, created_at')
-        .range((page - 1) * itemsPerPage, page * itemsPerPage - 1)
-        .order('created_at', { ascending: false });
-      
-      if (userError) throw userError;
-      
-      if (!userData) {
+      if (!authUsers || !authUsers.users) {
         setUsers([]);
+        setTotalCount(0);
+        setLoading(false);
         return;
       }
       
-      // For each user profile, get their role using RPC function
-      const usersWithRoles = await Promise.all(
-        userData.map(async (profile) => {
-          const { data: roleData } = await supabase
-            .rpc('get_user_role_safely', { user_id: profile.id });
-          
-          // We can't use get_user_email RPC since it doesn't exist in the schema
-          // Instead, we'll use a default pattern or the current user's email if it's the same ID
-          let email = 'Email hidden';
-          if (currentUser && currentUser.id === profile.id) {
-            email = currentUser.email || 'Email hidden';
-          }
-          
-          return {
-            id: profile.id,
-            email: email,
-            created_at: profile.created_at,
-            role: roleData as 'superadmin' | 'admin' | 'staff' | 'user',
-            first_name: profile.first_name,
-            last_name: profile.last_name,
-          };
-        })
-      );
+      // Set the total count for pagination
+      setTotalCount(authUsers.total || 0);
       
+      // Now get profiles data to enrich user information
+      const profilesPromises = authUsers.users.map(async (authUser) => {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', authUser.id)
+          .single();
+
+        // Get user role
+        const { data: roleData } = await supabase
+          .rpc('get_user_role_safely', { user_id: authUser.id });
+        
+        return {
+          id: authUser.id,
+          email: authUser.email || 'No email',
+          created_at: authUser.created_at,
+          role: (roleData as 'superadmin' | 'admin' | 'staff' | 'user') || 'user',
+          first_name: profileData?.first_name,
+          last_name: profileData?.last_name,
+        };
+      });
+      
+      const usersWithRoles = await Promise.all(profilesPromises);
       setUsers(usersWithRoles);
     } catch (error) {
       console.error('Error fetching users:', error);
-      toast.error('Failed to load users');
+      toast.error('Failed to load users. You may not have the required permissions.');
     } finally {
       setLoading(false);
     }
@@ -168,7 +171,27 @@ export default function UserManagement() {
   
   return (
     <div className="container py-10">
-      <h1 className="text-2xl font-bold mb-6">User Management</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">User Management</h1>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={fetchUsers} 
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Refresh user list</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+      
       <p className="text-muted-foreground mb-6">
         As a superadmin, you can manage user roles in the system. 
         Changes to user roles take effect immediately.
