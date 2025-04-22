@@ -72,18 +72,20 @@ export default function UserManagement() {
       
       if (userError) throw userError;
       
+      if (!userData) {
+        setUsers([]);
+        return;
+      }
+      
       // For each user profile, get their role using RPC function
       const usersWithRoles = await Promise.all(
         userData.map(async (profile) => {
           const { data: roleData } = await supabase
-            .rpc('get_user_role', { user_id: profile.id });
+            .rpc('get_user_role_safely', { user_id: profile.id });
           
-          // Get email from auth.users table via server function
-          const { data: emailData } = await supabase
-            .rpc('get_user_email', { p_user_id: profile.id });
-          
-          // If the current user, we can get email from auth context
-          let email = emailData || 'Email hidden';
+          // We can't use get_user_email RPC since it doesn't exist in the schema
+          // Instead, we'll use a default pattern or the current user's email if it's the same ID
+          let email = 'Email hidden';
           if (currentUser && currentUser.id === profile.id) {
             email = currentUser.email || 'Email hidden';
           }
