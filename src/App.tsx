@@ -26,6 +26,7 @@ import NotFound from "./pages/NotFound";
 import PoliticianCreate from "./pages/forms/PoliticianCreate";
 import PoliticianEdit from "./pages/forms/PoliticianEdit";
 import Community from "./pages/Community";
+import DashboardRedirect from "./pages/DashboardRedirect";
 
 export default function App() {
   return (
@@ -40,6 +41,8 @@ export default function App() {
           <Route path="counties/:id" element={<CountiesList />} />
           <Route path="search" element={<SearchResults />} />
           <Route path="community" element={<Community />} />
+          {/* Add redirect for old dashboard route */}
+          <Route path="dashboard" element={<DashboardRedirect />} />
         </Route>
 
         <Route path="/add-politician" element={<PoliticianCreate />} />
