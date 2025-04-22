@@ -2,8 +2,10 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+
+// Using direct toast import for error messages only
+import { toast } from 'sonner';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -46,10 +48,7 @@ export default function AuthCallback() {
               return;
             }
             
-            toast({
-              title: "Authentication successful",
-              description: "You have been signed in successfully.",
-            });
+            // Don't show toast here - AuthContext will handle it
             navigate('/');
             return;
           }
@@ -76,10 +75,7 @@ export default function AuthCallback() {
         });
         navigate('/auth');
       } else {
-        toast({
-          title: "Authentication successful",
-          description: "You have been signed in successfully.",
-        });
+        // Don't show toast here - AuthContext will handle it
         navigate('/');
       }
     };

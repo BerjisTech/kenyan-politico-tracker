@@ -25,6 +25,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<'superadmin' | 'admin' | 'staff' | 'user' | null>(null);
+  const [authInitialized, setAuthInitialized] = useState(false);
 
   // Fetch user role from database using a function to avoid RLS policies
   const fetchUserRole = async (userId: string) => {
@@ -70,11 +71,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUserRole(null);
         }
         
-        // Show toast notifications for auth events
-        if (event === 'SIGNED_IN') {
-          toast.success('Signed in successfully.');
-        } else if (event === 'SIGNED_OUT') {
-          toast.success('Signed out successfully.');
+        // Show toast notifications for auth events only once the auth is fully initialized
+        // and only for actual sign in/out events (not token refreshes)
+        if (authInitialized) {
+          if (event === 'SIGNED_IN') {
+            toast.success('Signed in successfully.');
+          } else if (event === 'SIGNED_OUT') {
+            toast.success('Signed out successfully.');
+          }
         }
         
         setIsLoading(false);
@@ -91,6 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       setIsLoading(false);
+      setAuthInitialized(true);
     });
 
     return () => subscription.unsubscribe();

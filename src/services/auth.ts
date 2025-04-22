@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export type SignUpData = {
   email: string;
@@ -28,26 +28,15 @@ export const signUp = async (data: SignUpData) => {
     });
     
     if (error) {
-      toast({
-        title: "Registration failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(error.message);
       return { success: false, error };
     }
     
-    toast({
-      title: "Registration successful",
-      description: "Please check your email to verify your account.",
-    });
+    toast.success("Registration successful! Please check your email to verify your account.");
     
     return { success: true };
   } catch (error: any) {
-    toast({
-      title: "Registration failed",
-      description: error.message,
-      variant: "destructive",
-    });
+    toast.error(error.message || "Registration failed");
     return { success: false, error };
   }
 };
@@ -60,26 +49,14 @@ export const signIn = async (data: SignInData) => {
     });
     
     if (error) {
-      toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(error.message);
       return { success: false, error };
     }
     
-    toast({
-      title: "Login successful",
-      description: "Welcome back!",
-    });
-    
+    // Don't show toast here - AuthContext will handle it
     return { success: true };
   } catch (error: any) {
-    toast({
-      title: "Login failed",
-      description: error.message,
-      variant: "destructive",
-    });
+    toast.error(error.message || "Login failed");
     return { success: false, error };
   }
 };
@@ -94,21 +71,13 @@ export const signInWithGoogle = async () => {
     });
     
     if (error) {
-      toast({
-        title: "Google login failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(error.message);
       return { success: false, error };
     }
     
     return { success: true };
   } catch (error: any) {
-    toast({
-      title: "Google login failed",
-      description: error.message,
-      variant: "destructive",
-    });
+    toast.error(error.message || "Google login failed");
     return { success: false, error };
   }
 };
@@ -118,26 +87,14 @@ export const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     
     if (error) {
-      toast({
-        title: "Sign out failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(error.message);
       return { success: false, error };
     }
     
-    toast({
-      title: "Signed out",
-      description: "You have been signed out successfully.",
-    });
-    
+    // Don't show toast here - AuthContext will handle it
     return { success: true };
   } catch (error: any) {
-    toast({
-      title: "Sign out failed",
-      description: error.message,
-      variant: "destructive",
-    });
+    toast.error(error.message || "Sign out failed");
     return { success: false, error };
   }
 };

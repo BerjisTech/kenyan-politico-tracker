@@ -66,7 +66,14 @@ export default function UserManagement() {
       setLoading(true);
       setError(null);
       
-      // Use the RPC function instead to avoid infinite recursion
+      // Only superadmins can view all roles
+      if (userRole !== 'superadmin') {
+        setError("You don't have permission to view user roles");
+        setLoading(false);
+        return;
+      }
+
+      // Query user_roles directly - our RLS policies should now be correctly set up
       const { data: userData, error } = await supabase
         .from('user_roles')
         .select('user_id, role, created_at, updated_at')
@@ -110,7 +117,7 @@ export default function UserManagement() {
 
   const updateUserRole = async (userId: string, newRole: 'superadmin' | 'admin' | 'staff' | 'user') => {
     try {
-      // Instead of using rpc, use a direct REST call to the function
+      // Direct update to user_roles table
       const { error } = await supabase
         .from('user_roles')
         .update({ role: newRole })
