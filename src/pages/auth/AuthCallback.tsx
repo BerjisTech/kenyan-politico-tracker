@@ -10,22 +10,62 @@ export default function AuthCallback() {
   
   useEffect(() => {
     const handleAuthCallback = async () => {
-      // Get the current URL hash
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const error = hashParams.get('error');
-      const errorDescription = hashParams.get('error_description');
-      
-      if (error) {
-        toast({
-          title: "Authentication failed",
-          description: errorDescription || error,
-          variant: "destructive",
-        });
-        navigate('/auth');
-        return;
+      // Check if we have a hash in the URL (from OAuth redirect)
+      if (window.location.hash) {
+        // Extract token from hash and use it to establish session
+        try {
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const error = hashParams.get('error');
+          const errorDescription = hashParams.get('error_description');
+          
+          if (error) {
+            toast({
+              title: "Authentication failed",
+              description: errorDescription || error,
+              variant: "destructive",
+            });
+            navigate('/auth');
+            return;
+          }
+          
+          // Try to establish session with the token from the URL
+          const accessToken = hashParams.get('access_token');
+          if (accessToken) {
+            const { error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: hashParams.get('refresh_token') || '',
+            });
+            
+            if (sessionError) {
+              toast({
+                title: "Authentication failed",
+                description: sessionError.message,
+                variant: "destructive",
+              });
+              navigate('/auth');
+              return;
+            }
+            
+            toast({
+              title: "Authentication successful",
+              description: "You have been signed in successfully.",
+            });
+            navigate('/');
+            return;
+          }
+        } catch (err: any) {
+          console.error("Error processing auth callback:", err);
+          toast({
+            title: "Authentication failed",
+            description: err.message || "An error occurred during authentication",
+            variant: "destructive",
+          });
+          navigate('/auth');
+          return;
+        }
       }
 
-      // Process the session
+      // If no hash or token processing failed, fallback to getSession
       const { error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
