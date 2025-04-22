@@ -3,10 +3,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
 import { AdminLayout } from "./components/admin/AdminLayout";
-import Dashboard from "./pages/Dashboard";
 import PoliticiansList from "./pages/PoliticiansList";
 import PoliticianDetail from "./pages/PoliticianDetail";
 import PoliticianCreate from "./pages/forms/PoliticianCreate";
@@ -46,7 +45,7 @@ const App = () => (
               {/* Public/User Routes */}
               <Route element={<Layout />}>
                 <Route path="/" element={<Index />} />
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
                 <Route path="/politicians" element={<PoliticiansList />} />
                 <Route path="/politicians/:id" element={<PoliticianDetail />} />
                 <Route path="/counties" element={<CountiesList />} />
@@ -57,7 +56,11 @@ const App = () => (
               
               {/* Admin Routes */}
               <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<AdminDashboard />} />
+                <Route index element={
+                  <RoleGuard allowedRoles={['admin', 'superadmin']}>
+                    <AdminDashboard />
+                  </RoleGuard>
+                } />
                 <Route path="politicians" element={<PoliticiansManagement />} />
                 <Route path="politicians/create" element={<AdminPoliticianForm />} />
                 <Route path="politicians/edit/:id" element={<AdminPoliticianForm />} />

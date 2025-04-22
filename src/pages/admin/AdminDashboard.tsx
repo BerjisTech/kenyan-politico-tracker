@@ -4,13 +4,36 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Shield, Activity } from 'lucide-react';
+import { getAllPoliticians } from '@/lib/mock-data';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { useEffect, useState } from 'react';
+import { Politician } from '@/types';
 
 export default function AdminDashboard() {
   const { userRole } = useAuth();
   const navigate = useNavigate();
+  const [politicians, setPoliticians] = useState<Politician[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const isAdmin = userRole === 'superadmin' || userRole === 'admin';
   
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await getAllPoliticians();
+        setPoliticians(data);
+      } catch (err) {
+        setError('Failed to fetch dashboard data');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   if (!isAdmin) {
     return (
       <div className="container py-10">
