@@ -35,7 +35,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { RefreshCw, AlertCircle } from 'lucide-react';
+import {
+  RefreshCw, AlertCircle
+} from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface UserWithRole {
@@ -66,9 +68,6 @@ export default function UserManagement() {
       setLoading(true);
       setError(null);
       
-      // Instead of using auth.admin.listUsers which requires special permissions,
-      // use a custom implementation that works with the access we have
-      
       // First get all user IDs from user_roles table
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
@@ -96,16 +95,18 @@ export default function UserManagement() {
       // Get user profiles for each user ID
       const userProfiles = await Promise.all(
         roleData.map(async (item) => {
-          // Get profile data
+          // Get profile data - NOTE: We specifically select only existing columns
           const { data: profileData } = await supabase
             .from('profiles')
-            .select('first_name, last_name, email, created_at')
+            .select('first_name, last_name, avatar_url, created_at')
             .eq('id', item.user_id)
             .single();
           
+          // Create a user with role object
           return {
             id: item.user_id,
-            email: profileData?.email || 'No email',
+            // Use a default email since email field doesn't exist in profiles table
+            email: `User ${item.user_id.substring(0, 8)}`,
             created_at: profileData?.created_at || new Date().toISOString(),
             role: item.role as 'superadmin' | 'admin' | 'staff' | 'user',
             first_name: profileData?.first_name,
@@ -127,11 +128,15 @@ export default function UserManagement() {
 
   const updateUserRole = async (userId: string, newRole: 'superadmin' | 'admin' | 'staff' | 'user') => {
     try {
-      // Use server functions with RPC instead of direct API call
-      const { error } = await supabase.rpc('update_user_role', {
-        p_user_id: userId,
-        p_role: newRole
-      });
+      // Fix: Instead of using RPC which is causing TypeScript errors,
+      // directly update the user_roles table
+      const { error } = await supabase
+        .from('user_roles')
+        .update({ 
+          role: newRole,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
       
       if (error) throw error;
       
@@ -217,7 +222,7 @@ export default function UserManagement() {
             <TableHeader>
               <TableRow>
                 <TableHead>User</TableHead>
-                <TableHead>Email</TableHead>
+                <TableHead>Email/ID</TableHead>
                 <TableHead>Created At</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Actions</TableHead>
