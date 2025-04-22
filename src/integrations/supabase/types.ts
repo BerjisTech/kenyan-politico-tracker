@@ -9,7 +9,245 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      channel_members: {
+        Row: {
+          channel_id: string
+          id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_members_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channels: {
+        Row: {
+          banned_at: string | null
+          banned_by: string | null
+          banned_reason: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          group_id: string | null
+          id: string
+          is_banned: boolean | null
+          name: string
+          topic_id: string | null
+          updated_at: string
+          visibility: Database["public"]["Enums"]["visibility_type"]
+        }
+        Insert: {
+          banned_at?: string | null
+          banned_by?: string | null
+          banned_reason?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          group_id?: string | null
+          id?: string
+          is_banned?: boolean | null
+          name: string
+          topic_id?: string | null
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility_type"]
+        }
+        Update: {
+          banned_at?: string | null
+          banned_by?: string | null
+          banned_reason?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          group_id?: string | null
+          id?: string
+          is_banned?: boolean | null
+          name?: string
+          topic_id?: string | null
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channels_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channels_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          content: string
+          created_at: string
+          downvotes: number | null
+          id: string
+          parent_id: string | null
+          post_id: string
+          updated_at: string
+          upvotes: number | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          downvotes?: number | null
+          id?: string
+          parent_id?: string | null
+          post_id: string
+          updated_at?: string
+          upvotes?: number | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          downvotes?: number | null
+          id?: string
+          parent_id?: string | null
+          post_id?: string
+          updated_at?: string
+          upvotes?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       counties: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      group_members: {
+        Row: {
+          group_id: string
+          id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          banned_at: string | null
+          banned_by: string | null
+          banned_reason: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_banned: boolean | null
+          name: string
+          updated_at: string
+          visibility: Database["public"]["Enums"]["visibility_type"]
+        }
+        Insert: {
+          banned_at?: string | null
+          banned_by?: string | null
+          banned_reason?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_banned?: boolean | null
+          name: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility_type"]
+        }
+        Update: {
+          banned_at?: string | null
+          banned_by?: string | null
+          banned_reason?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_banned?: boolean | null
+          name?: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility_type"]
+        }
+        Relationships: []
+      }
+      hashtags: {
         Row: {
           created_at: string
           id: string
@@ -52,6 +290,70 @@ export type Database = {
             columns: ["scandal_id"]
             isOneToOne: false
             referencedRelation: "scandals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moderation_actions: {
+        Row: {
+          action: Database["public"]["Enums"]["moderation_action"]
+          channel_id: string | null
+          created_at: string
+          expires_at: string | null
+          group_id: string | null
+          id: string
+          performed_by: string
+          reason: string | null
+          target_user_id: string
+          topic_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["moderation_action"]
+          channel_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          group_id?: string | null
+          id?: string
+          performed_by: string
+          reason?: string | null
+          target_user_id: string
+          topic_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["moderation_action"]
+          channel_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          group_id?: string | null
+          id?: string
+          performed_by?: string
+          reason?: string | null
+          target_user_id?: string
+          topic_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_actions_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_actions_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_actions_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
             referencedColumns: ["id"]
           },
         ]
@@ -210,6 +512,112 @@ export type Database = {
             columns: ["politician_id"]
             isOneToOne: false
             referencedRelation: "politicians"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_hashtags: {
+        Row: {
+          created_at: string
+          hashtag_id: string
+          id: string
+          post_id: string
+        }
+        Insert: {
+          created_at?: string
+          hashtag_id: string
+          id?: string
+          post_id: string
+        }
+        Update: {
+          created_at?: string
+          hashtag_id?: string
+          id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_hashtags_hashtag_id_fkey"
+            columns: ["hashtag_id"]
+            isOneToOne: false
+            referencedRelation: "hashtags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_hashtags_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          channel_id: string | null
+          content: string | null
+          created_at: string
+          downvotes: number | null
+          group_id: string | null
+          id: string
+          media_url: string | null
+          post_type: Database["public"]["Enums"]["post_type"]
+          title: string
+          topic_id: string | null
+          updated_at: string
+          upvotes: number | null
+          user_id: string
+        }
+        Insert: {
+          channel_id?: string | null
+          content?: string | null
+          created_at?: string
+          downvotes?: number | null
+          group_id?: string | null
+          id?: string
+          media_url?: string | null
+          post_type?: Database["public"]["Enums"]["post_type"]
+          title: string
+          topic_id?: string | null
+          updated_at?: string
+          upvotes?: number | null
+          user_id: string
+        }
+        Update: {
+          channel_id?: string | null
+          content?: string | null
+          created_at?: string
+          downvotes?: number | null
+          group_id?: string | null
+          id?: string
+          media_url?: string | null
+          post_type?: Database["public"]["Enums"]["post_type"]
+          title?: string
+          topic_id?: string | null
+          updated_at?: string
+          upvotes?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
             referencedColumns: ["id"]
           },
         ]
@@ -486,6 +894,80 @@ export type Database = {
           },
         ]
       }
+      topic_members: {
+        Row: {
+          id: string
+          joined_at: string
+          role: string
+          topic_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          role?: string
+          topic_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          role?: string
+          topic_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topic_members_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      topics: {
+        Row: {
+          banned_at: string | null
+          banned_by: string | null
+          banned_reason: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_banned: boolean | null
+          name: string
+          updated_at: string
+          visibility: Database["public"]["Enums"]["visibility_type"]
+        }
+        Insert: {
+          banned_at?: string | null
+          banned_by?: string | null
+          banned_reason?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_banned?: boolean | null
+          name: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility_type"]
+        }
+        Update: {
+          banned_at?: string | null
+          banned_by?: string | null
+          banned_reason?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_banned?: boolean | null
+          name?: string
+          updated_at?: string
+          visibility?: Database["public"]["Enums"]["visibility_type"]
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -544,6 +1026,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ban_user_from_topic: {
+        Args: {
+          _topic_id: string
+          _user_id: string
+          _reason: string
+          _admin_id: string
+        }
+        Returns: undefined
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
@@ -565,7 +1056,10 @@ export type Database = {
       }
     }
     Enums: {
+      moderation_action: "ban" | "mute" | "remove"
+      post_type: "text" | "image" | "video" | "audio"
       user_role: "superadmin" | "admin" | "staff" | "user"
+      visibility_type: "public" | "private"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -681,7 +1175,10 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      moderation_action: ["ban", "mute", "remove"],
+      post_type: ["text", "image", "video", "audio"],
       user_role: ["superadmin", "admin", "staff", "user"],
+      visibility_type: ["public", "private"],
     },
   },
 } as const

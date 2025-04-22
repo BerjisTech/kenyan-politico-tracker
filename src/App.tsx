@@ -1,87 +1,93 @@
 
-import { Route, Routes } from "react-router-dom";
-import { ThemeProvider } from "./components/ThemeProvider";
+import { Routes, Route } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
-import Index from "./pages/Index";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as SonnerToaster } from "sonner";
-import PoliticiansList from "./pages/PoliticiansList";
-import PoliticianDetail from "./pages/PoliticianDetail";
-import PartiesList from "./pages/PartiesList";
-import CountiesList from "./pages/CountiesList";
-import SearchResults from "./pages/SearchResults";
-import AuthPage from "./pages/auth/AuthPage";
-import AuthCallback from "./pages/auth/AuthCallback";
+import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "./context/AuthContext";
 import { RoleGuard } from "./components/RoleGuard";
-import { AdminLayout } from "./components/admin/AdminLayout";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import PoliticiansManagement from "./pages/admin/PoliticiansManagement";
-import PartiesManagement from "./pages/admin/PartiesManagement";
-import CountiesManagement from "./pages/admin/CountiesManagement";
-import SubCountiesManagement from "./pages/admin/SubCountiesManagement";
-import WardsManagement from "./pages/admin/WardsManagement";
-import ProjectsManagement from "./pages/admin/ProjectsManagement";
-import UserManagement from "./pages/admin/UserManagement";
-import NotFound from "./pages/NotFound";
-import PoliticianCreate from "./pages/forms/PoliticianCreate";
-import PoliticianEdit from "./pages/forms/PoliticianEdit";
-import Community from "./pages/Community";
-import DashboardRedirect from "./pages/DashboardRedirect";
+import { ThemeProvider } from "./components/ThemeProvider";
+
+// Pages
+import Index from "@/pages/Index";
+import NotFound from "@/pages/NotFound";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import AdminLayout from "@/components/admin/AdminLayout";
+import DashboardRedirect from "@/pages/DashboardRedirect";
+import Dashboard from "@/pages/Dashboard";
+import PoliticiansList from "@/pages/PoliticiansList";
+import PoliticianDetail from "@/pages/PoliticianDetail";
+import CountiesList from "@/pages/CountiesList";
+import PartiesList from "@/pages/PartiesList";
+import SearchResults from "@/pages/SearchResults";
+import Community from "@/pages/Community";
+import PoliticiansManagement from "@/pages/admin/PoliticiansManagement";
+import CountiesManagement from "@/pages/admin/CountiesManagement";
+import PartiesManagement from "@/pages/admin/PartiesManagement";
+import ProjectsManagement from "@/pages/admin/ProjectsManagement";
+import UserManagement from "@/pages/admin/UserManagement";
+import SubCountiesManagement from "@/pages/admin/SubCountiesManagement";
+import WardsManagement from "@/pages/admin/WardsManagement";
+import PoliticianCreate from "@/pages/forms/PoliticianCreate";
+import PoliticianEdit from "@/pages/forms/PoliticianEdit";
+import AuthPage from "@/pages/auth/AuthPage";
+import AuthCallback from "@/pages/auth/AuthCallback";
+
+// Community Pages
+import CommunityHome from "@/pages/community/CommunityHome";
+import TopicPage from "@/pages/community/TopicPage";
+import PostCreate from "@/pages/community/PostCreate";
 
 export default function App() {
   return (
     <ThemeProvider>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Index />} />
-          <Route path="politicians" element={<PoliticiansList />} />
-          <Route path="politicians/:id" element={<PoliticianDetail />} />
-          <Route path="parties" element={<PartiesList />} />
-          <Route path="counties" element={<CountiesList />} />
-          <Route path="counties/:id" element={<CountiesList />} />
-          <Route path="search" element={<SearchResults />} />
-          <Route path="community" element={<Community />} />
-          {/* Add redirect for old dashboard route */}
-          <Route path="dashboard" element={<DashboardRedirect />} />
-        </Route>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Index />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="politicians" element={<PoliticiansList />} />
+            <Route path="politicians/:id" element={<PoliticianDetail />} />
+            <Route path="counties" element={<CountiesList />} />
+            <Route path="parties" element={<PartiesList />} />
+            <Route path="search" element={<SearchResults />} />
+            <Route path="community" element={<Community />}>
+              <Route index element={<CommunityHome />} />
+              <Route path="topic/:id" element={<TopicPage />} />
+              <Route path="post/new" element={<PostCreate />} />
+              {/* Add other community routes as needed */}
+            </Route>
+            <Route path="auth" element={<AuthPage />} />
+            <Route path="auth/callback" element={<AuthCallback />} />
+            <Route path="*" element={<NotFound />} />
+          </Route>
 
-        <Route path="/add-politician" element={<PoliticianCreate />} />
-        <Route path="/edit-politician/:id" element={<PoliticianEdit />} />
-
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-
-        {/* Admin Routes */}
-        <Route
-          path="/admin"
-          element={
-            <RoleGuard allowedRoles={['admin', 'superadmin']}>
-              <AdminLayout />
-            </RoleGuard>
-          }
-        >
-          <Route index element={<AdminDashboard />} />
-          <Route path="politicians" element={<PoliticiansManagement />} />
-          <Route path="parties" element={<PartiesManagement />} />
-          <Route path="counties" element={<CountiesManagement />} />
-          <Route path="counties/:countyId/subcounties" element={<SubCountiesManagement />} />
-          <Route path="subcounties/:subCountyId/wards" element={<WardsManagement />} />
-          <Route path="projects" element={<ProjectsManagement />} />
           <Route
-            path="users"
+            path="/dashboard-redirect"
+            element={<DashboardRedirect />}
+          />
+
+          <Route
+            path="/admin"
             element={
-              <RoleGuard allowedRoles={['superadmin']}>
-                <UserManagement />
+              <RoleGuard allowedRoles={["superadmin", "admin"]}>
+                <AdminLayout />
               </RoleGuard>
             }
-          />
-        </Route>
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="politicians" element={<PoliticiansManagement />} />
+            <Route path="counties" element={<CountiesManagement />} />
+            <Route path="sub-counties" element={<SubCountiesManagement />} />
+            <Route path="wards" element={<WardsManagement />} />
+            <Route path="parties" element={<PartiesManagement />} />
+            <Route path="projects" element={<ProjectsManagement />} />
+            <Route path="users" element={<UserManagement />} />
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-
-      <Toaster />
-      <SonnerToaster position="top-center" />
+            <Route path="politician/create" element={<PoliticianCreate />} />
+            <Route path="politician/edit/:id" element={<PoliticianEdit />} />
+          </Route>
+        </Routes>
+        <Toaster position="top-center" />
+      </AuthProvider>
     </ThemeProvider>
   );
 }
