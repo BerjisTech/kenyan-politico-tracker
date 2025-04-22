@@ -41,9 +41,9 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface UserWithRole {
-  id: string;
-  email: string;
-  created_at: string;
+  user_id: string;
+  email?: string;
+  created_at?: string;
   role: 'superadmin' | 'admin' | 'staff' | 'user';
   first_name?: string;
   last_name?: string;
@@ -68,26 +68,32 @@ export default function UserManagement() {
       setLoading(true);
       setError(null);
       
-      // Use the RPC function to get user roles to avoid recursion
-      const { data: roleData, error: roleError } = await supabase.rpc('get_users_with_roles', {
-        page_number: page,
-        page_size: itemsPerPage
-      });
+      // Use the direct query instead of RPC
+      const { data, error: roleError } = await supabase
+        .from('user_roles')
+        .select(`
+          user_id,
+          role,
+          profiles!inner(first_name, last_name, created_at)
+        `)
+        .range((page - 1) * itemsPerPage, page * itemsPerPage - 1);
       
       if (roleError) {
         console.error("Error fetching users with roles:", roleError);
         throw roleError;
       }
       
-      if (!roleData || roleData.length === 0) {
+      if (!data || data.length === 0) {
         setUsers([]);
         setTotalCount(0);
         setLoading(false);
         return;
       }
       
-      // Get the count using the RPC function
-      const { count, error: countError } = await supabase.rpc('get_users_count');
+      // Get the count using direct query
+      const { count, error: countError } = await supabase
+        .from('user_roles')
+        .select('*', { count: 'exact', head: true });
       
       if (countError) {
         console.error("Error fetching user count:", countError);
@@ -97,13 +103,13 @@ export default function UserManagement() {
       setTotalCount(count || 0);
       
       // Transform the data to the expected format
-      const formattedUsers = roleData.map((item: any) => ({
-        id: item.user_id,
-        email: item.email || `User ${item.user_id.substring(0, 8)}`,
-        created_at: item.created_at || new Date().toISOString(),
-        role: item.role as 'superadmin' | 'admin' | 'staff' | 'user',
-        first_name: item.first_name,
-        last_name: item.last_name,
+      const formattedUsers = data.map((item: any) => ({
+        user_id: item.user_id,
+        email: `User ${item.user_id.substring(0, 8)}`,
+        created_at: item.profiles?.created_at || new Date().toISOString(),
+        role: item.role,
+        first_name: item.profiles?.first_name,
+        last_name: item.profiles?.last_name,
       }));
       
       setUsers(formattedUsers);
@@ -112,38 +118,6 @@ export default function UserManagement() {
       console.error('Error fetching users:', error);
       setError(error.message || 'Failed to load users');
       toast.error('Failed to load users. You may not have the required permissions.');
-      
-      // Fallback to direct query if RPC doesn't exist yet
-      try {
-        const { data, error: directError } = await supabase
-          .from('user_roles')
-          .select('user_id, role, profiles!inner(first_name, last_name, created_at)')
-          .range((page - 1) * itemsPerPage, page * itemsPerPage - 1);
-        
-        if (directError) throw directError;
-        
-        if (data && data.length > 0) {
-          const formattedUsers = data.map(item => ({
-            id: item.user_id,
-            email: `User ${item.user_id.substring(0, 8)}`,
-            created_at: item.profiles?.created_at || new Date().toISOString(),
-            role: item.role as 'superadmin' | 'admin' | 'staff' | 'user',
-            first_name: item.profiles?.first_name,
-            last_name: item.profiles?.last_name,
-          }));
-          
-          setUsers(formattedUsers);
-          
-          // Fallback count
-          const { count } = await supabase
-            .from('user_roles')
-            .select('*', { count: 'exact', head: true });
-          
-          setTotalCount(count || 0);
-        }
-      } catch (fallbackError) {
-        console.error('Fallback query also failed:', fallbackError);
-      }
     } finally {
       setLoading(false);
     }
@@ -151,17 +125,17 @@ export default function UserManagement() {
 
   const updateUserRole = async (userId: string, newRole: 'superadmin' | 'admin' | 'staff' | 'user') => {
     try {
-      // Use the update_user_role RPC function instead of directly updating the table
-      const { error } = await supabase.rpc('update_user_role', {
-        p_user_id: userId,
-        p_role: newRole
-      });
+      // Use direct update instead of RPC
+      const { error } = await supabase
+        .from('user_roles')
+        .update({ role: newRole, updated_at: new Date().toISOString() })
+        .eq('user_id', userId);
       
       if (error) throw error;
       
       // Update local state
       setUsers(users.map(user => 
-        user.id === userId ? { ...user, role: newRole } : user
+        user.user_id === userId ? { ...user, role: newRole } : user
       ));
       
       toast.success(`User role updated to ${newRole}`);
@@ -249,25 +223,25 @@ export default function UserManagement() {
             </TableHeader>
             <TableBody>
               {users.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow key={user.user_id}>
                   <TableCell>
                     {user.first_name || user.last_name ? 
                       `${user.first_name || ''} ${user.last_name || ''}`.trim() : 
                       'No name provided'}
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell>{user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}</TableCell>
                   <TableCell>{user.role}</TableCell>
                   <TableCell>
                     <Select
                       value={user.role}
                       onValueChange={(value) => 
                         updateUserRole(
-                          user.id, 
+                          user.user_id, 
                           value as 'superadmin' | 'admin' | 'staff' | 'user'
                         )
                       }
-                      disabled={user.id === currentUser?.id}
+                      disabled={user.user_id === currentUser?.id}
                     >
                       <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Select role" />
