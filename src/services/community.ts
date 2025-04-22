@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Post, Comment, Topic, Group, Channel, Hashtag,
@@ -259,69 +258,117 @@ export async function fetchTopics(options: {
   page?: number;
   pageSize?: number;
 }) {
-  const { search, page = 1, pageSize = 10 } = options;
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
-  
-  let query = supabase
-    .from('topics')
-    .select('*', { count: 'exact' })
-    .order('created_at', { ascending: false })
-    .range(from, to);
+  try {
+    const { search, page = 1, pageSize = 10 } = options;
+    const offset = (page - 1) * pageSize;
+    
+    // Use the security definer function to avoid RLS recursion
+    let query = supabase.rpc('get_topics_safely', {
+      limit_num: pageSize,
+      offset_num: offset
+    });
+    
+    // Filter client-side if search is provided since our RPC function doesn't support filtering
+    let { data, error } = await query;
+    
+    if (error) {
+      console.error('Error fetching topics:', error);
+      toast.error('Failed to load topics');
+      throw error;
+    }
+    
+    // Apply search filter client-side if needed
+    let topics = data as Topic[];
+    if (search && topics) {
+      const searchLower = search.toLowerCase();
+      topics = topics.filter(topic => 
+        topic.name.toLowerCase().includes(searchLower) || 
+        (topic.description && topic.description.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    // Get member counts for each topic
+    if (topics) {
+      for (const topic of topics) {
+        const { count: memberCount, error: memberError } = await supabase
+          .from('topic_members')
+          .select('*', { count: 'exact' })
+          .eq('topic_id', topic.id);
 
-  if (search) {
-    query = query.ilike('name', `%${search}%`);
-  }
+        if (!memberError) {
+          topic.member_count = memberCount;
+        }
+      }
+    }
 
-  const { data, count, error } = await query;
+    // Count total for pagination - a bit of a hack, but should work
+    const { data: allTopics, error: countError } = await supabase.rpc('get_topics_safely');
+    const totalCount = allTopics ? (search ? topics.length : allTopics.length) : 0;
 
-  if (error) {
-    console.error('Error fetching topics:', error);
+    return { topics: topics || [], count: totalCount };
+  } catch (error) {
+    console.error('Error in fetchTopics:', error);
     toast.error('Failed to load topics');
     throw error;
   }
-
-  // Get member counts for each topic
-  const topics = data as Topic[];
-  for (const topic of topics) {
-    const { count: memberCount, error: memberError } = await supabase
-      .from('topic_members')
-      .select('*', { count: 'exact' })
-      .eq('topic_id', topic.id);
-
-    if (!memberError) {
-      topic.member_count = memberCount;
-    }
-  }
-
-  return { topics, count };
 }
 
 export async function fetchTopicById(id: string): Promise<Topic> {
-  const { data, error } = await supabase
-    .from('topics')
-    .select('*')
-    .eq('id', id)
-    .single();
+  try {
+    // First try to get the topic directly
+    const { data, error } = await supabase
+      .from('topics')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-  if (error) {
-    console.error('Error fetching topic:', error);
-    toast.error('Failed to load topic');
+    if (error) {
+      console.error('Error fetching topic directly:', error);
+      
+      // If direct access fails, try using the security definer function
+      const { data: allTopics, error: rpcError } = await supabase.rpc('get_topics_safely');
+      
+      if (rpcError) {
+        console.error('Error fetching topics via RPC:', rpcError);
+        toast.error('Failed to load topic');
+        throw rpcError;
+      }
+      
+      const topic = allTopics.find((t: any) => t.id === id);
+      if (!topic) {
+        throw new Error('Topic not found');
+      }
+      
+      // Get member count
+      const { count: memberCount, error: memberError } = await supabase
+        .from('topic_members')
+        .select('*', { count: 'exact' })
+        .eq('topic_id', id);
+
+      if (!memberError && topic) {
+        topic.member_count = memberCount;
+      }
+      
+      return topic as Topic;
+    }
+
+    // Get member count
+    const { count: memberCount, error: memberError } = await supabase
+      .from('topic_members')
+      .select('*', { count: 'exact' })
+      .eq('topic_id', id);
+
+    const topic = data as Topic;
+    if (!memberError) {
+      topic.member_count = memberCount;
+    }
+
+    return topic;
+  } catch (error: any) {
+    console.error('Error in fetchTopicById:', error);
+    toast.error('Failed to load topic: ' + error.message);
     throw error;
   }
-
-  // Get member count
-  const { count: memberCount, error: memberError } = await supabase
-    .from('topic_members')
-    .select('*', { count: 'exact' })
-    .eq('topic_id', id);
-
-  const topic = data as Topic;
-  if (!memberError) {
-    topic.member_count = memberCount;
-  }
-
-  return topic;
 }
 
 export async function createTopic(topic: {

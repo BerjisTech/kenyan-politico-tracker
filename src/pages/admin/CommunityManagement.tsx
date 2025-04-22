@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -69,10 +68,7 @@ function TopicsManagement() {
   const { data: topics, isLoading, error, refetch } = useQuery({
     queryKey: ['admin-topics'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('topics')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('get_topics_safely');
       
       if (error) throw error;
       return data as Topic[];
@@ -203,9 +199,7 @@ function TopicDialog({ mode, topic, onSuccess }: TopicDialogProps) {
   const [visibility, setVisibility] = useState<"public" | "private">(topic?.visibility as "public" | "private" || 'public');
   const [loading, setLoading] = useState(false);
   
-  // Fix: Create a handler function that properly handles the value change
   const handleVisibilityChange = (value: string) => {
-    // Validate that the value is either 'public' or 'private' before setting the state
     if (value === 'public' || value === 'private') {
       setVisibility(value);
     }
@@ -342,7 +336,6 @@ function TopicDialog({ mode, topic, onSuccess }: TopicDialogProps) {
 }
 
 function GroupsManagement() {
-  // Similar to TopicsManagement but for groups
   return (
     <div className="space-y-6 mt-6">
       <h2 className="text-2xl font-semibold">Groups Management</h2>
@@ -355,7 +348,6 @@ function GroupsManagement() {
 }
 
 function ChannelsManagement() {
-  // Management for channels
   return (
     <div className="space-y-6 mt-6">
       <h2 className="text-2xl font-semibold">Channels Management</h2>
@@ -368,7 +360,6 @@ function ChannelsManagement() {
 }
 
 function ModerationManagement() {
-  // Management for moderation actions
   return (
     <div className="space-y-6 mt-6">
       <h2 className="text-2xl font-semibold">Moderation Management</h2>

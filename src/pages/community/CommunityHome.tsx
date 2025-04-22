@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -119,7 +118,6 @@ export default function CommunityHome() {
         visibility: values.visibility as "public" | "private",
       });
       
-      // Refresh topics list
       const { topics: newTopics } = await fetchTopics({ pageSize: 20 });
       setTopics(newTopics);
       setOpenTopicDialog(false);
@@ -137,7 +135,6 @@ export default function CommunityHome() {
         visibility: values.visibility as "public" | "private",
       });
       
-      // Refresh groups list
       const { groups: newGroups } = await fetchGroups({ pageSize: 20 });
       setGroups(newGroups);
       setOpenGroupDialog(false);
