@@ -10,12 +10,16 @@ import { useQuery } from '@tanstack/react-query';
 export default function PoliticiansManagement() {
   const [loading, setLoading] = useState(false);
   
+  // Use a more efficient query that gets all needed data in one go
   const { data: politicians, isLoading, error, refetch } = useQuery({
     queryKey: ['admin-politicians'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('politicians')
-        .select('id, name, image, county_id, counties(name)')
+        .select(`
+          id, name, image, county_id, 
+          counties:county_id(name)
+        `)
         .order('name');
       
       if (error) throw error;
