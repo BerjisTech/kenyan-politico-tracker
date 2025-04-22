@@ -1,11 +1,10 @@
-
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { Users, Award, FileText, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "@/components/ui/toast-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const PoliticiansSection = () => {

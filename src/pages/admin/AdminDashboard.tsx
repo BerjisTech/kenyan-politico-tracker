@@ -8,7 +8,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useEffect, useState } from 'react';
 import { Politician, Project } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/components/ui/toast-utils';
 
 // Sample data for charts
 const activityData = [
@@ -79,19 +79,19 @@ export default function AdminDashboard() {
         
         // Calculate stats
         const countyStats = countyData
-          .filter(county => county.politicians_count > 0)
+          .filter(county => county.politicians && county.politicians.length > 0)
           .map(county => ({
             name: county.name,
-            count: county.politicians_count
+            count: county.politicians.length
           }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 5);
           
         const partyStats = partyData
-          .filter(party => party.party_affiliations_count > 0)
+          .filter(party => party.party_affiliations && party.party_affiliations.length > 0)
           .map(party => ({
             name: party.name,
-            count: party.party_affiliations_count
+            count: party.party_affiliations.length
           }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 5);
@@ -103,8 +103,53 @@ export default function AdminDashboard() {
           totalParties: partyData?.length || 0,
         });
         
-        setPoliticians(politiciansData as Politician[] || []);
-        setProjects(projectsData as Project[] || []);
+        // Transform the raw data to match our Politician interface
+        const transformedPoliticians = politiciansData?.map(raw => {
+          const currentRole = raw.roles && raw.roles.length > 0 ? {
+            id: raw.roles[0].id,
+            title: raw.roles[0].title,
+            organization: raw.roles[0].organization,
+            startDate: "", // Default values since we don't have this data
+            isCurrent: true
+          } : {
+            id: "default",
+            title: "Unknown",
+            organization: "Unknown",
+            startDate: new Date().toISOString().split('T')[0],
+            isCurrent: true
+          };
+          
+          return {
+            id: raw.id,
+            name: raw.name,
+            bio: raw.bio || "",
+            county: raw.counties?.name,
+            currentRole,
+            formerRoles: [],
+            parties: [],
+            projects: [],
+            scandals: [],
+            popularityHistory: []
+          } as Politician;
+        }) || [];
+        
+        // Transform the raw projects data to match our Project interface
+        const transformedProjects = projectsData?.map(raw => {
+          return {
+            id: raw.id,
+            name: raw.name,
+            description: raw.description,
+            startDate: raw.start_date,
+            endDate: raw.end_date,
+            budget: raw.budget,
+            status: raw.status as any,
+            outcome: raw.outcome,
+            location: "" // Default value
+          } as Project;
+        }) || [];
+        
+        setPoliticians(transformedPoliticians);
+        setProjects(transformedProjects);
         setCountyStats(countyStats);
         setPartyStats(partyStats);
       } catch (err) {
