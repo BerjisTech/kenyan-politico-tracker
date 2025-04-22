@@ -84,6 +84,35 @@ export const signIn = async (data: SignInData) => {
   }
 };
 
+export const signInWithGoogle = async () => {
+  try {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + '/auth/callback',
+      }
+    });
+    
+    if (error) {
+      toast({
+        title: "Google login failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      return { success: false, error };
+    }
+    
+    return { success: true };
+  } catch (error: any) {
+    toast({
+      title: "Google login failed",
+      description: error.message,
+      variant: "destructive",
+    });
+    return { success: false, error };
+  }
+};
+
 export const signOut = async () => {
   try {
     const { error } = await supabase.auth.signOut();

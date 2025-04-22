@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { signUp, signIn } from "@/services/auth";
+import { signUp, signIn, signInWithGoogle } from "@/services/auth";
 import { useAuth } from "@/context/AuthContext";
-import { Loader2 } from "lucide-react";
+import { Loader2, Github, Mail } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 const signUpSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -26,8 +27,11 @@ const signInSchema = z.object({
 });
 
 export default function AuthPage() {
-  const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
+  const searchParams = new URLSearchParams(window.location.search);
+  const defaultTab = searchParams.get("tab") === "signup" ? "signup" : "signin";
+  const [activeTab, setActiveTab] = useState<"signin" | "signup">(defaultTab as "signin" | "signup");
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   
@@ -90,6 +94,16 @@ export default function AuthPage() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+    } finally {
+      // Note: We don't need to reset isGoogleLoading here because the page will redirect
+      // We'll leave it true to show loading state until redirect happens
+    }
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
       <div className="w-full max-w-md">
@@ -107,119 +121,179 @@ export default function AuthPage() {
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
               <TabsContent value="signin">
-                <Form {...signInForm}>
-                  <form onSubmit={signInForm.handleSubmit(onSignInSubmit)} className="space-y-4">
-                    <FormField
-                      control={signInForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input placeholder="mail@example.com" type="email" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={signInForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input placeholder="••••••••" type="password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Signing in...
-                        </>
-                      ) : (
-                        "Sign In"
-                      )}
-                    </Button>
-                  </form>
-                </Form>
+                <div className="space-y-4">
+                  <Button 
+                    variant="outline" 
+                    type="button" 
+                    className="w-full flex items-center justify-center"
+                    onClick={handleGoogleSignIn}
+                    disabled={isGoogleLoading}
+                  >
+                    {isGoogleLoading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                        <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
+                      </svg>
+                    )}
+                    Sign in with Google
+                  </Button>
+                  
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        Or continue with
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <Form {...signInForm}>
+                    <form onSubmit={signInForm.handleSubmit(onSignInSubmit)} className="space-y-4">
+                      <FormField
+                        control={signInForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input placeholder="mail@example.com" type="email" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={signInForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                              <Input placeholder="••••••••" type="password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Signing in...
+                          </>
+                        ) : (
+                          "Sign In"
+                        )}
+                      </Button>
+                    </form>
+                  </Form>
+                </div>
               </TabsContent>
               <TabsContent value="signup">
-                <Form {...signUpForm}>
-                  <form onSubmit={signUpForm.handleSubmit(onSignUpSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={signUpForm.control}
-                        name="firstName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>First Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="John" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={signUpForm.control}
-                        name="lastName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Last Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Doe" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                <div className="space-y-4">
+                  <Button 
+                    variant="outline" 
+                    type="button" 
+                    className="w-full flex items-center justify-center"
+                    onClick={handleGoogleSignIn}
+                    disabled={isGoogleLoading}
+                  >
+                    {isGoogleLoading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                        <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
+                      </svg>
+                    )}
+                    Sign up with Google
+                  </Button>
+                  
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
                     </div>
-                    <FormField
-                      control={signUpForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input placeholder="mail@example.com" type="email" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={signUpForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input placeholder="••••••••" type="password" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Must be at least 6 characters long
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating account...
-                        </>
-                      ) : (
-                        "Create Account"
-                      )}
-                    </Button>
-                  </form>
-                </Form>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        Or continue with
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <Form {...signUpForm}>
+                    <form onSubmit={signUpForm.handleSubmit(onSignUpSubmit)} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={signUpForm.control}
+                          name="firstName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>First Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="John" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={signUpForm.control}
+                          name="lastName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Last Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Doe" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <FormField
+                        control={signUpForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input placeholder="mail@example.com" type="email" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={signUpForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                              <Input placeholder="••••••••" type="password" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                              Must be at least 6 characters long
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Creating account...
+                          </>
+                        ) : (
+                          "Create Account"
+                        )}
+                      </Button>
+                    </form>
+                  </Form>
+                </div>
               </TabsContent>
             </Tabs>
           </CardContent>

@@ -16,6 +16,7 @@ import SearchResults from "./pages/SearchResults";
 import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
 import AuthPage from "./pages/auth/AuthPage";
+import AuthCallback from "./pages/auth/AuthCallback";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import { AuthProvider } from "./context/AuthContext";
@@ -36,6 +37,7 @@ const App = () => (
             <Sonner />
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route element={<Layout />}>
                 <Route path="/" element={<Index />} />
                 <Route path="/dashboard" element={<Dashboard />} />
