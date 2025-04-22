@@ -110,13 +110,11 @@ export default function UserManagement() {
 
   const updateUserRole = async (userId: string, newRole: 'superadmin' | 'admin' | 'staff' | 'user') => {
     try {
-      // Call the RPC function to update role safely, but using a raw query instead of rpc method
-      // to avoid TypeScript errors with unrecognized RPC function names
+      // Instead of using rpc, use a direct REST call to the function
       const { error } = await supabase
-        .rpc('update_user_role', {
-          p_user_id: userId,
-          p_role: newRole
-        } as any); // Use type assertion to bypass TypeScript check
+        .from('user_roles')
+        .update({ role: newRole })
+        .eq('user_id', userId);
       
       if (error) throw error;
       
