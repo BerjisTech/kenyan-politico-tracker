@@ -200,8 +200,16 @@ interface TopicDialogProps {
 function TopicDialog({ mode, topic, onSuccess }: TopicDialogProps) {
   const [name, setName] = useState(topic?.name || '');
   const [description, setDescription] = useState(topic?.description || '');
-  const [visibility, setVisibility] = useState(topic?.visibility || 'public');
+  const [visibility, setVisibility] = useState<"public" | "private">(topic?.visibility as "public" | "private" || 'public');
   const [loading, setLoading] = useState(false);
+  
+  // Fix: Create a handler function that properly handles the value change
+  const handleVisibilityChange = (value: string) => {
+    // Validate that the value is either 'public' or 'private' before setting the state
+    if (value === 'public' || value === 'private') {
+      setVisibility(value);
+    }
+  };
   
   const handleSubmit = async (e: React.FormEvent, close: () => void) => {
     e.preventDefault();
@@ -217,7 +225,7 @@ function TopicDialog({ mode, topic, onSuccess }: TopicDialogProps) {
           .insert({
             name,
             description,
-            visibility: visibility as any,
+            visibility: visibility,
             created_by: user.data.user.id
           });
         
@@ -229,7 +237,7 @@ function TopicDialog({ mode, topic, onSuccess }: TopicDialogProps) {
           .update({
             name,
             description,
-            visibility: visibility as any
+            visibility: visibility
           })
           .eq('id', topic.id);
         
@@ -249,7 +257,7 @@ function TopicDialog({ mode, topic, onSuccess }: TopicDialogProps) {
   const resetForm = () => {
     setName(topic?.name || '');
     setDescription(topic?.description || '');
-    setVisibility(topic?.visibility || 'public');
+    setVisibility(topic?.visibility as "public" | "private" || 'public');
   };
   
   return (
@@ -296,7 +304,7 @@ function TopicDialog({ mode, topic, onSuccess }: TopicDialogProps) {
               <Label htmlFor="visibility">Visibility</Label>
               <Select
                 value={visibility}
-                onValueChange={setVisibility}
+                onValueChange={handleVisibilityChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select visibility" />
