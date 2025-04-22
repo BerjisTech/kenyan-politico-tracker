@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,7 +36,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
-// Define the form schema with Zod
 const politicianFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   dateOfBirth: z.date().optional(),
@@ -90,7 +88,6 @@ export function PoliticianForm({ politician, isEditing = false }: PoliticianForm
     }
   });
 
-  // Fetch counties when component mounts
   useState(() => {
     const fetchCounties = async () => {
       try {
@@ -123,14 +120,26 @@ export function PoliticianForm({ politician, isEditing = false }: PoliticianForm
     form.setValue('education', updatedFields.filter(field => field.trim() !== ''));
   };
 
+  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>, onChange: (date: Date | undefined) => void, currentValue?: Date) => {
+    const dateString = e.target.value;
+    
+    if (!dateString) {
+      onChange(undefined);
+      return;
+    }
+    
+    const date = new Date(dateString);
+    if (!isNaN(date.getTime())) {
+      onChange(date);
+    }
+  };
+
   async function onSubmit(data: PoliticianFormValues) {
     setLoading(true);
     try {
-      // Filter out empty education fields
       const filteredEducation = educationFields.filter(field => field.trim() !== '');
       data.education = filteredEducation;
 
-      // First, find the county ID from the county name
       let countyId = null;
       if (data.county) {
         const { data: countyData } = await supabase
@@ -147,7 +156,6 @@ export function PoliticianForm({ politician, isEditing = false }: PoliticianForm
       let politicianId;
       
       if (isEditing) {
-        // Update the politician
         const { error } = await supabase
           .from('politicians')
           .update({
@@ -165,7 +173,6 @@ export function PoliticianForm({ politician, isEditing = false }: PoliticianForm
         if (error) throw error;
         politicianId = politician.id;
         
-        // Update current role
         const { error: roleError } = await supabase
           .from('roles')
           .update({
@@ -180,7 +187,6 @@ export function PoliticianForm({ politician, isEditing = false }: PoliticianForm
         
         toast.success('Politician updated successfully');
       } else {
-        // Insert new politician
         const { data: newPolitician, error } = await supabase
           .from('politicians')
           .insert({
@@ -199,7 +205,6 @@ export function PoliticianForm({ politician, isEditing = false }: PoliticianForm
         if (error) throw error;
         politicianId = newPolitician.id;
         
-        // Insert current role
         const { data: currentRole, error: roleError } = await supabase
           .from('roles')
           .insert({
@@ -215,7 +220,6 @@ export function PoliticianForm({ politician, isEditing = false }: PoliticianForm
         
         if (roleError) throw roleError;
         
-        // Update politician with the current role ID
         const { error: updateError } = await supabase
           .from('politicians')
           .update({ current_role_id: currentRole.id })
@@ -261,37 +265,40 @@ export function PoliticianForm({ politician, isEditing = false }: PoliticianForm
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Date of Birth</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
+                <div className="flex gap-2">
+                  <Input
+                    type="date"
+                    value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                    onChange={(e) => handleDateInputChange(e, field.onChange, field.value)}
+                    className="w-full"
+                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
                       <Button
                         variant={"outline"}
                         className={cn(
-                          "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
+                          "w-10 p-0 flex-shrink-0",
                         )}
                       >
-                        {field.value ? (
-                          format(field.value, "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        <CalendarIcon className="h-4 w-4" />
                       </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      disabled={(date) =>
-                        date > new Date() || date < new Date("1900-01-01")
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) =>
+                          date > new Date() || date < new Date("1900-01-01")
+                        }
+                        fromYear={1930}
+                        toYear={new Date().getFullYear()}
+                        captionLayout="dropdown-buttons"
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
@@ -466,35 +473,38 @@ export function PoliticianForm({ politician, isEditing = false }: PoliticianForm
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Start Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
+                <div className="flex gap-2">
+                  <Input
+                    type="date"
+                    value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                    onChange={(e) => handleDateInputChange(e, field.onChange, field.value)}
+                    className="w-full"
+                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
                       <Button
                         variant={"outline"}
                         className={cn(
-                          "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
+                          "w-10 p-0 flex-shrink-0",
                         )}
                       >
-                        {field.value ? (
-                          format(field.value, "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        <CalendarIcon className="h-4 w-4" />
                       </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      disabled={(date) => date > new Date()}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) => date > new Date()}
+                        fromYear={1990}
+                        toYear={new Date().getFullYear()}
+                        captionLayout="dropdown-buttons"
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
                 <FormMessage />
               </FormItem>
             )}

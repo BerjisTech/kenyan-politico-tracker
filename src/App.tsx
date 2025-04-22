@@ -15,6 +15,7 @@ import PartiesList from "./pages/PartiesList";
 import SearchResults from "./pages/SearchResults";
 import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
+import Community from "./pages/Community";
 import AuthPage from "./pages/auth/AuthPage";
 import AuthCallback from "./pages/auth/AuthCallback";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -45,7 +46,15 @@ const App = () => (
               {/* Public/User Routes */}
               <Route element={<Layout />}>
                 <Route path="/" element={<Index />} />
-                <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
+                <Route path="/dashboard" element={
+                  <RoleGuard 
+                    allowedRoles={['admin', 'superadmin']} 
+                    fallback={<Navigate to="/community" replace />}
+                  >
+                    <Navigate to="/admin" replace />
+                  </RoleGuard>
+                } />
+                <Route path="/community" element={<Community />} />
                 <Route path="/politicians" element={<PoliticiansList />} />
                 <Route path="/politicians/:id" element={<PoliticianDetail />} />
                 <Route path="/counties" element={<CountiesList />} />
