@@ -32,7 +32,7 @@ export default function PoliticiansList() {
         .select(`
           id, name, image, bio, constituency, ward, county_id,
           counties:county_id(name),
-          roles:current_role_id(title, organization, start_date)
+          roles:current_role_id(id, title, organization, start_date)
         `);
       
       if (error) throw error;
