@@ -1,104 +1,84 @@
 
+import { Route, Routes } from "react-router-dom";
+import { ThemeProvider } from "./components/ThemeProvider";
+import Layout from "./components/layout/Layout";
+import Index from "./pages/Index";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route, Navigate } from "react-router-dom";
-import { Layout } from "./components/layout/Layout";
-import { AdminLayout } from "./components/admin/AdminLayout";
+import { Toaster as SonnerToaster } from "sonner";
 import PoliticiansList from "./pages/PoliticiansList";
 import PoliticianDetail from "./pages/PoliticianDetail";
-import PoliticianCreate from "./pages/forms/PoliticianCreate";
-import PoliticianEdit from "./pages/forms/PoliticianEdit";
-import CountiesList from "./pages/CountiesList";
 import PartiesList from "./pages/PartiesList";
+import CountiesList from "./pages/CountiesList";
 import SearchResults from "./pages/SearchResults";
-import NotFound from "./pages/NotFound";
-import Index from "./pages/Index";
-import Community from "./pages/Community";
 import AuthPage from "./pages/auth/AuthPage";
 import AuthCallback from "./pages/auth/AuthCallback";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import UserManagement from "./pages/admin/UserManagement";
-import PoliticiansManagement from "./pages/admin/PoliticiansManagement";
-import CountiesManagement from "./pages/admin/CountiesManagement";
-import PartiesManagement from "./pages/admin/PartiesManagement";
-import ProjectsManagement from "./pages/admin/ProjectsManagement";
-import AdminPoliticianForm from "./pages/admin/forms/PoliticianForm";
-import { AuthProvider } from "./context/AuthContext";
 import { RoleGuard } from "./components/RoleGuard";
-import React from 'react';
-import { ThemeProvider } from "./components/ThemeProvider";
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import PoliticiansManagement from "./pages/admin/PoliticiansManagement";
+import PartiesManagement from "./pages/admin/PartiesManagement";
+import CountiesManagement from "./pages/admin/CountiesManagement";
+import SubCountiesManagement from "./pages/admin/SubCountiesManagement";
+import WardsManagement from "./pages/admin/WardsManagement";
+import ProjectsManagement from "./pages/admin/ProjectsManagement";
+import UserManagement from "./pages/admin/UserManagement";
+import NotFound from "./pages/NotFound";
+import Dashboard from "./pages/Dashboard";
+import PoliticianCreate from "./pages/forms/PoliticianCreate";
+import PoliticianEdit from "./pages/forms/PoliticianEdit";
 
-// Create a client
-const queryClient = new QueryClient();
+export default function App() {
+  return (
+    <ThemeProvider>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Index />} />
+          <Route path="politicians" element={<PoliticiansList />} />
+          <Route path="politicians/:id" element={<PoliticianDetail />} />
+          <Route path="parties" element={<PartiesList />} />
+          <Route path="counties" element={<CountiesList />} />
+          <Route path="counties/:id" element={<CountiesList />} />
+          <Route path="search" element={<SearchResults />} />
+          <Route path="dashboard" element={<Dashboard />} />
+        </Route>
 
-const App = () => (
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="system" storageKey="ui-theme">
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <Routes>
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
-              
-              {/* Public/User Routes */}
-              <Route element={<Layout />}>
-                <Route path="/" element={<Index />} />
-                <Route path="/dashboard" element={
-                  <RoleGuard 
-                    allowedRoles={['admin', 'superadmin']} 
-                    fallback={<Navigate to="/community" replace />}
-                  >
-                    <Navigate to="/admin" replace />
-                  </RoleGuard>
-                } />
-                <Route path="/community" element={<Community />} />
-                <Route path="/politicians" element={<PoliticiansList />} />
-                <Route path="/politicians/:id" element={<PoliticiansList />} />
-                <Route path="/counties" element={<CountiesList />} />
-                <Route path="/counties/:id" element={<CountiesList />} />
-                <Route path="/parties" element={<PartiesList />} />
-                <Route path="/search" element={<SearchResults />} />
-                <Route path="*" element={<NotFound />} />
-              </Route>
-              
-              {/* Admin Routes */}
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={
-                  <RoleGuard allowedRoles={['admin', 'superadmin']}>
-                    <AdminDashboard />
-                  </RoleGuard>
-                } />
-                <Route path="politicians" element={<PoliticiansManagement />} />
-                <Route path="politicians/create" element={<AdminPoliticianForm />} />
-                <Route path="politicians/edit/:id" element={<AdminPoliticianForm />} />
-                <Route path="projects" element={<ProjectsManagement />} />
-                <Route path="counties" element={
-                  <RoleGuard allowedRoles={['admin', 'superadmin']}>
-                    <CountiesManagement />
-                  </RoleGuard>
-                } />
-                <Route path="parties" element={
-                  <RoleGuard allowedRoles={['admin', 'superadmin']}>
-                    <PartiesManagement />
-                  </RoleGuard>
-                } />
-                <Route path="users" element={
-                  <RoleGuard allowedRoles={['superadmin']}>
-                    <UserManagement />
-                  </RoleGuard>
-                } />
-              </Route>
-            </Routes>
-          </TooltipProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
-  </React.StrictMode>
-);
+        <Route path="/add-politician" element={<PoliticianCreate />} />
+        <Route path="/edit-politician/:id" element={<PoliticianEdit />} />
 
-export default App;
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+
+        {/* Admin Routes */}
+        <Route
+          path="/admin"
+          element={
+            <RoleGuard requiredRole="admin">
+              <AdminLayout />
+            </RoleGuard>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="politicians" element={<PoliticiansManagement />} />
+          <Route path="parties" element={<PartiesManagement />} />
+          <Route path="counties" element={<CountiesManagement />} />
+          <Route path="counties/:countyId/subcounties" element={<SubCountiesManagement />} />
+          <Route path="subcounties/:subCountyId/wards" element={<WardsManagement />} />
+          <Route path="projects" element={<ProjectsManagement />} />
+          <Route
+            path="users"
+            element={
+              <RoleGuard requiredRole="superadmin">
+                <UserManagement />
+              </RoleGuard>
+            }
+          />
+        </Route>
+
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+
+      <Toaster />
+      <SonnerToaster position="top-center" />
+    </ThemeProvider>
+  );
+}

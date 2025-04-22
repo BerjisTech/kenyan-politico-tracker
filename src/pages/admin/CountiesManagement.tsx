@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Pencil, Trash2, ChevronDown } from 'lucide-react';
+import { PlusCircle, Pencil, Trash2, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -53,12 +53,19 @@ export default function CountiesManagement() {
     queryFn: async () => {
       const { data, error, count } = await supabase
         .from('counties')
-        .select('*', { count: 'exact' })
+        .select('*, sub_counties(count)', { count: 'exact' })
         .order('name')
         .range((page - 1) * itemsPerPage, page * itemsPerPage - 1);
       
       if (error) throw error;
-      return { counties: data, totalCount: count || 0 };
+      
+      // Format the data to include the subcounty count
+      const countiesWithCounts = data.map(county => ({
+        ...county,
+        subCountyCount: county.sub_counties?.length || 0
+      }));
+      
+      return { counties: countiesWithCounts, totalCount: count || 0 };
     }
   });
 
@@ -215,7 +222,7 @@ export default function CountiesManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>County Name</TableHead>
-                  <TableHead className="w-[150px]">Sub-Counties</TableHead>
+                  <TableHead className="w-[200px]">Sub-Counties</TableHead>
                   <TableHead className="w-[120px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -224,24 +231,15 @@ export default function CountiesManagement() {
                   <TableRow key={county.id}>
                     <TableCell className="font-medium">{county.name}</TableCell>
                     <TableCell>
-                      <Accordion type="single" collapsible className="w-full">
-                        <AccordionItem value="subcounties">
-                          <AccordionTrigger className="py-1">
-                            {subcountiesByCounty[county.id]?.length || 0} Sub-Counties
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <ul className="space-y-1 text-sm">
-                              {subcountiesByCounty[county.id]?.length ? (
-                                subcountiesByCounty[county.id].map(subcounty => (
-                                  <li key={subcounty.id}>{subcounty.name}</li>
-                                ))
-                              ) : (
-                                <li className="text-muted-foreground">No sub-counties</li>
-                              )}
-                            </ul>
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm">{county.subCountyCount} Sub-Counties</span>
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link to={`/admin/counties/${county.id}/subcounties`}>
+                            <ChevronRight className="h-4 w-4" />
+                            Manage
+                          </Link>
+                        </Button>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" onClick={() => handleEditCounty(county)}>

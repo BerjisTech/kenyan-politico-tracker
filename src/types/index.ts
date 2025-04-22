@@ -63,3 +63,44 @@ export interface Politician {
   constituency?: string;
   ward?: string;
 }
+
+export interface County {
+  id: string;
+  name: string;
+  created_at?: string;
+}
+
+export interface SubCounty {
+  id: string;
+  name: string;
+  county_id: string;
+  created_at?: string;
+}
+
+export interface Ward {
+  id: string;
+  name: string;
+  sub_county_id: string;
+  created_at?: string;
+}
+
+export interface Location {
+  id: string;
+  name: string;
+  ward_id: string;
+  created_at?: string;
+}
+
+export interface SubLocation {
+  id: string;
+  name: string;
+  location_id: string;
+  created_at?: string;
+}
+
+export interface Village {
+  id: string;
+  name: string;
+  sub_location_id: string;
+  created_at?: string;
+}
