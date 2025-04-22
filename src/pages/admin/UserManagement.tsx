@@ -21,6 +21,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 
 interface UserWithRole {
   id: string;
@@ -34,21 +42,33 @@ interface UserWithRole {
 export default function UserManagement() {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const { userRole, user: currentUser } = useAuth();
   const navigate = useNavigate();
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [page]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       
-      // Call a Supabase function to get user roles
+      // Get users count first (for pagination)
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      
+      setTotalCount(count || 0);
+      
+      // Then get paginated profiles
       const { data: userData, error: userError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, created_at');
+        .select('id, first_name, last_name, created_at')
+        .range((page - 1) * itemsPerPage, page * itemsPerPage - 1)
+        .order('created_at', { ascending: false });
       
       if (userError) throw userError;
       
@@ -58,8 +78,12 @@ export default function UserManagement() {
           const { data: roleData } = await supabase
             .rpc('get_user_role', { user_id: profile.id });
           
+          // Get email from auth.users table via server function
+          const { data: emailData } = await supabase
+            .rpc('get_user_email', { p_user_id: profile.id });
+          
           // If the current user, we can get email from auth context
-          let email = 'Email hidden';
+          let email = emailData || 'Email hidden';
           if (currentUser && currentUser.id === profile.id) {
             email = currentUser.email || 'Email hidden';
           }
@@ -121,6 +145,8 @@ export default function UserManagement() {
     }
   };
 
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+
   if (userRole !== 'superadmin') {
     return (
       <div className="container py-10">
@@ -153,54 +179,94 @@ export default function UserManagement() {
           </div>
         </div>
       ) : (
-        <Table>
-          <TableCaption>List of all users in the system</TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Created At</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>
-                  {user.first_name || user.last_name ? 
-                    `${user.first_name || ''} ${user.last_name || ''}`.trim() : 
-                    'No name provided'}
-                </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
-                <TableCell>{user.role}</TableCell>
-                <TableCell>
-                  <Select
-                    value={user.role}
-                    onValueChange={(value) => 
-                      updateUserRole(
-                        user.id, 
-                        value as 'superadmin' | 'admin' | 'staff' | 'user'
-                      )
-                    }
-                    disabled={user.id === currentUser?.id && userRole === 'superadmin'}
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="superadmin">Superadmin</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="staff">Staff</SelectItem>
-                      <SelectItem value="user">User</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
+        <div className="space-y-4">
+          <Table>
+            <TableCaption>List of all users in the system</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Created At</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    {user.first_name || user.last_name ? 
+                      `${user.first_name || ''} ${user.last_name || ''}`.trim() : 
+                      'No name provided'}
+                  </TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell>{user.role}</TableCell>
+                  <TableCell>
+                    <Select
+                      value={user.role}
+                      onValueChange={(value) => 
+                        updateUserRole(
+                          user.id, 
+                          value as 'superadmin' | 'admin' | 'staff' | 'user'
+                        )
+                      }
+                      disabled={user.id === currentUser?.id && userRole === 'superadmin'}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="superadmin">Superadmin</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="staff">Staff</SelectItem>
+                        <SelectItem value="user">User</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {users.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-6">
+                    No users found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+          
+          {totalPages > 1 && (
+            <Pagination className="mt-4">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    className={page <= 1 ? "pointer-events-none opacity-50" : ""}
+                  />
+                </PaginationItem>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <PaginationItem key={p}>
+                    <PaginationLink
+                      onClick={() => setPage(p)}
+                      isActive={page === p}
+                    >
+                      {p}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    className={page >= totalPages ? "pointer-events-none opacity-50" : ""}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </div>
       )}
     </div>
   );

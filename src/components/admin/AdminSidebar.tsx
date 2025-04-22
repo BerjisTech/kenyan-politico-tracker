@@ -1,6 +1,6 @@
 
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, User, Briefcase, Settings } from 'lucide-react';
+import { LayoutDashboard, User, Flag, Map, Briefcase, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,18 @@ export function AdminSidebar({ className = "", collapsed = false }: AdminSidebar
       name: "Politicians",
       path: "/admin/politicians",
       icon: User,
+      roles: ['admin', 'superadmin']
+    },
+    {
+      name: "Counties",
+      path: "/admin/counties",
+      icon: Map,
+      roles: ['admin', 'superadmin']
+    },
+    {
+      name: "Parties",
+      path: "/admin/parties",
+      icon: Flag,
       roles: ['admin', 'superadmin']
     },
     {

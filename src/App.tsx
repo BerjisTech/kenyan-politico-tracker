@@ -21,6 +21,8 @@ import AuthCallback from "./pages/auth/AuthCallback";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import PoliticiansManagement from "./pages/admin/PoliticiansManagement";
+import CountiesManagement from "./pages/admin/CountiesManagement";
+import PartiesManagement from "./pages/admin/PartiesManagement";
 import ProjectsManagement from "./pages/admin/ProjectsManagement";
 import AdminPoliticianForm from "./pages/admin/forms/PoliticianForm";
 import { AuthProvider } from "./context/AuthContext";
@@ -56,8 +58,9 @@ const App = () => (
                 } />
                 <Route path="/community" element={<Community />} />
                 <Route path="/politicians" element={<PoliticiansList />} />
-                <Route path="/politicians/:id" element={<PoliticianDetail />} />
+                <Route path="/politicians/:id" element={<PoliticiansList />} />
                 <Route path="/counties" element={<CountiesList />} />
+                <Route path="/counties/:id" element={<CountiesList />} />
                 <Route path="/parties" element={<PartiesList />} />
                 <Route path="/search" element={<SearchResults />} />
                 <Route path="*" element={<NotFound />} />
@@ -74,6 +77,16 @@ const App = () => (
                 <Route path="politicians/create" element={<AdminPoliticianForm />} />
                 <Route path="politicians/edit/:id" element={<AdminPoliticianForm />} />
                 <Route path="projects" element={<ProjectsManagement />} />
+                <Route path="counties" element={
+                  <RoleGuard allowedRoles={['admin', 'superadmin']}>
+                    <CountiesManagement />
+                  </RoleGuard>
+                } />
+                <Route path="parties" element={
+                  <RoleGuard allowedRoles={['admin', 'superadmin']}>
+                    <PartiesManagement />
+                  </RoleGuard>
+                } />
                 <Route path="users" element={
                   <RoleGuard allowedRoles={['superadmin']}>
                     <UserManagement />
