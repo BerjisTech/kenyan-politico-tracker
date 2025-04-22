@@ -68,14 +68,10 @@ export default function UserManagement() {
       setLoading(true);
       setError(null);
       
-      // Use the direct query instead of RPC
-      const { data, error: roleError } = await supabase
+      // First, get the user roles
+      const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
-        .select(`
-          user_id,
-          role,
-          profiles!inner(first_name, last_name, created_at)
-        `)
+        .select('user_id, role')
         .range((page - 1) * itemsPerPage, page * itemsPerPage - 1);
       
       if (roleError) {
@@ -83,14 +79,14 @@ export default function UserManagement() {
         throw roleError;
       }
       
-      if (!data || data.length === 0) {
+      if (!roleData || roleData.length === 0) {
         setUsers([]);
         setTotalCount(0);
         setLoading(false);
         return;
       }
       
-      // Get the count using direct query
+      // Get the count
       const { count, error: countError } = await supabase
         .from('user_roles')
         .select('*', { count: 'exact', head: true });
@@ -102,17 +98,29 @@ export default function UserManagement() {
       
       setTotalCount(count || 0);
       
-      // Transform the data to the expected format
-      const formattedUsers = data.map((item: any) => ({
-        user_id: item.user_id,
-        email: `User ${item.user_id.substring(0, 8)}`,
-        created_at: item.profiles?.created_at || new Date().toISOString(),
-        role: item.role,
-        first_name: item.profiles?.first_name,
-        last_name: item.profiles?.last_name,
-      }));
+      // Then, for each user role, get the profile information
+      const userWithProfiles: UserWithRole[] = [];
       
-      setUsers(formattedUsers);
+      for (const userRole of roleData) {
+        // Try to get the profile info
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, created_at')
+          .eq('id', userRole.user_id)
+          .single();
+        
+        // Combine the data
+        userWithProfiles.push({
+          user_id: userRole.user_id,
+          role: userRole.role as 'superadmin' | 'admin' | 'staff' | 'user',
+          email: `User ${userRole.user_id.substring(0, 8)}`,  // Placeholder email
+          created_at: profileData?.created_at || new Date().toISOString(),
+          first_name: profileData?.first_name || '',
+          last_name: profileData?.last_name || '',
+        });
+      }
+      
+      setUsers(userWithProfiles);
       
     } catch (error: any) {
       console.error('Error fetching users:', error);
