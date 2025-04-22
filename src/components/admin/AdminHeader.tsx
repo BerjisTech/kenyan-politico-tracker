@@ -25,7 +25,7 @@ export function AdminHeader({ className = "", onToggleSidebar }: AdminHeaderProp
 
         <div className="ml-auto flex items-center space-x-4">
           <ThemeToggle />
-          <UserMenu user={user} />
+          <UserMenu />
         </div>
       </div>
     </header>
