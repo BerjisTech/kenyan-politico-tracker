@@ -77,8 +77,13 @@ export default function UserManagement() {
         return;
       }
       
-      // Set the total count for pagination - handle both cases where total might be present or not
-      setTotalCount(authUsers.total || 0);
+      // Set the total count for pagination, safely handle different response formats
+      if ('total' in authUsers) {
+        setTotalCount(authUsers.total || 0);
+      } else {
+        // Fallback if total is not available
+        setTotalCount(authUsers.users.length);
+      }
       
       // Now get profiles data to enrich user information
       const profilesPromises = authUsers.users.map(async (authUser) => {
