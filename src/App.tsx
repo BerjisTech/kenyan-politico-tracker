@@ -1,3 +1,4 @@
+
 import { Routes, Route } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
 import { Toaster } from "@/components/ui/sonner";
@@ -45,6 +46,7 @@ import Notifications from "@/pages/community/Notifications";
 import Messages from "@/pages/community/Messages";
 import UserSettings from "@/pages/community/UserSettings";
 import CommunitySettings from "@/pages/community/CommunitySettings";
+import Saved from "@/pages/community/Saved";
 
 export default function App() {
   return (
@@ -71,6 +73,7 @@ export default function App() {
               <Route path="messages" element={<Messages />} />
               <Route path="settings" element={<UserSettings />} />
               <Route path="settings/community" element={<CommunitySettings />} />
+              <Route path="saved" element={<Saved />} />
               <Route path="topic/:id" element={<TopicPage />} />
               <Route path="post/new" element={<PostCreate />} />
             </Route>

@@ -22,7 +22,7 @@ export function CommunityRightSidebar() {
 
   return (
     <div className="w-[280px] h-screen fixed top-14 right-0 p-4 space-y-4 bg-card border-l overflow-auto">
-      <Button className="w-full" size="lg">
+      <Button className="w-full" size="lg" onClick={() => navigate('/community/post/new')}>
         <Plus className="mr-2 h-4 w-4" />
         Create Community
       </Button>

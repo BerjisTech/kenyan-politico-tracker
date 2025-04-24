@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Post, Comment, Topic, Group, Channel, Hashtag,
@@ -18,52 +17,58 @@ export async function fetchPosts(options: {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  let query = supabase
-    .from('posts')
-    .select(`
-      *,
-      author:user_id(
-        id,
-        email,
-        user_metadata
-      ),
-      hashtags:post_hashtags(
-        hashtags(*)
-      )
-    `, { count: 'exact' })
-    .order('created_at', { ascending: false })
-    .range(from, to);
+  try {
+    let query = supabase
+      .from('posts')
+      .select(`
+        *,
+        author:user_id(
+          id,
+          email,
+          user_metadata
+        ),
+        hashtags:post_hashtags(
+          hashtags(*)
+        )
+      `, { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to);
 
-  if (options.topic_id) {
-    query = query.eq('topic_id', options.topic_id);
-  }
+    if (options.topic_id) {
+      query = query.eq('topic_id', options.topic_id);
+    }
 
-  if (options.group_id) {
-    query = query.eq('group_id', options.group_id);
-  }
+    if (options.group_id) {
+      query = query.eq('group_id', options.group_id);
+    }
 
-  if (options.channel_id) {
-    query = query.eq('channel_id', options.channel_id);
-  }
+    if (options.channel_id) {
+      query = query.eq('channel_id', options.channel_id);
+    }
 
-  const { data, count, error } = await query;
+    const { data, count, error } = await query;
 
-  if (error) {
-    console.error('Error fetching posts:', error);
+    if (error) {
+      console.error('Error fetching posts:', error);
+      toast.error('Failed to load posts');
+      throw error;
+    }
+
+    const posts = data as unknown as Post[];
+    // Process post hashtags
+    posts.forEach(post => {
+      if (post.hashtags) {
+        // @ts-ignore - Reshape nested hashtags structure
+        post.hashtags = post.hashtags.map(h => h.hashtags);
+      }
+    });
+
+    return { posts, count };
+  } catch (error) {
+    console.error('Error in fetchPosts:', error);
     toast.error('Failed to load posts');
     throw error;
   }
-
-  const posts = data as unknown as Post[];
-  // Process post hashtags
-  posts.forEach(post => {
-    if (post.hashtags) {
-      // @ts-ignore - Reshape nested hashtags structure
-      post.hashtags = post.hashtags.map(h => h.hashtags);
-    }
-  });
-
-  return { posts, count };
 }
 
 export async function fetchPostById(id: string): Promise<Post> {
@@ -276,7 +281,7 @@ export async function fetchTopics(options: {
     // Apply pagination
     query = query.range(offset, offset + pageSize - 1);
     
-    const { data: topicsData, error, count } = await query;
+    const { data: topicsData, error } = await query;
     
     if (error) {
       console.error('Error fetching topics:', error);
@@ -284,37 +289,14 @@ export async function fetchTopics(options: {
       throw error;
     }
     
-    // Get member counts for each topic and properly type the returned data
-    const topics: Topic[] = [];
-    
-    if (topicsData) {
-      for (const topicData of topicsData) {
-        // Create a proper Topic object with the right type
-        const topic: Topic = {
-          ...topicData as unknown as Topic,
-          member_count: 0 // Initialize with default
-        };
-        
-        // Get member count for this topic
-        const { count: memberCount, error: memberError } = await supabase
-          .from('topic_members')
-          .select('*', { count: 'exact' })
-          .eq('topic_id', topic.id);
+    // Create a proper Topic object without trying to count members
+    // This avoids the infinite recursion issue
+    const topics: Topic[] = topicsData ? topicsData.map(topic => ({
+      ...topic as unknown as Topic,
+      member_count: 0 // Set a default value instead of trying to fetch counts
+    })) : [];
 
-        if (!memberError) {
-          topic.member_count = memberCount;
-        }
-        
-        topics.push(topic);
-      }
-    }
-
-    // Get total count for pagination
-    const { count: totalCount, error: countError } = await supabase
-      .from('topics')
-      .select('*', { count: 'exact', head: true });
-
-    return { topics: topics || [], count: totalCount || 0 };
+    return { topics, count: topics.length };
   } catch (error) {
     console.error('Error in fetchTopics:', error);
     toast.error('Failed to load topics');
@@ -336,16 +318,11 @@ export async function fetchTopicById(id: string): Promise<Topic> {
       throw error;
     }
 
-    // Get member count
-    const { count: memberCount, error: memberError } = await supabase
-      .from('topic_members')
-      .select('*', { count: 'exact' })
-      .eq('topic_id', id);
-
     // Create a proper Topic object with the correct type
+    // We're not counting members to avoid the recursion issue
     const topic: Topic = {
       ...data as unknown as Topic,
-      member_count: memberCount || 0
+      member_count: 0 // Set to default instead of fetching
     };
 
     return topic;
@@ -406,42 +383,42 @@ export async function fetchGroups(options: {
   page?: number;
   pageSize?: number;
 }) {
-  const { search, page = 1, pageSize = 10 } = options;
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
-  
-  let query = supabase
-    .from('groups')
-    .select('*', { count: 'exact' })
-    .order('created_at', { ascending: false })
-    .range(from, to);
+  try {
+    const { search, page = 1, pageSize = 10 } = options;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    
+    let query = supabase
+      .from('groups')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, to);
 
-  if (search) {
-    query = query.ilike('name', `%${search}%`);
-  }
+    if (search) {
+      query = query.ilike('name', `%${search}%`);
+    }
 
-  const { data, count, error } = await query;
+    const { data, error } = await query;
 
-  if (error) {
+    if (error) {
+      console.error('Error fetching groups:', error);
+      toast.error('Failed to load groups');
+      throw error;
+    }
+
+    // Create group objects without counting members
+    // This avoids the infinite recursion issue
+    const groups = data ? data.map(group => ({
+      ...group as unknown as Group,
+      member_count: 0 // Set a default value instead of trying to fetch counts
+    })) : [];
+
+    return { groups, count: groups.length };
+  } catch (error) {
     console.error('Error fetching groups:', error);
     toast.error('Failed to load groups');
     throw error;
   }
-
-  // Get member counts for each group
-  const groups = data as Group[];
-  for (const group of groups) {
-    const { count: memberCount, error: memberError } = await supabase
-      .from('group_members')
-      .select('*', { count: 'exact' })
-      .eq('group_id', group.id);
-
-    if (!memberError) {
-      group.member_count = memberCount;
-    }
-  }
-
-  return { groups, count };
 }
 
 export async function fetchGroupById(id: string): Promise<Group> {
@@ -457,16 +434,12 @@ export async function fetchGroupById(id: string): Promise<Group> {
     throw error;
   }
 
-  // Get member count
-  const { count: memberCount, error: memberError } = await supabase
-    .from('group_members')
-    .select('*', { count: 'exact' })
-    .eq('group_id', id);
-
-  const group = data as Group;
-  if (!memberError) {
-    group.member_count = memberCount;
-  }
+  // Create a proper Group object with the correct type
+  // We're not counting members to avoid the recursion issue
+  const group: Group = {
+    ...data as unknown as Group,
+    member_count: 0 // Set to default instead of fetching
+  };
 
   return group;
 }

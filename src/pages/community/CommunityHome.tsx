@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -93,12 +94,27 @@ export default function CommunityHome() {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [topicsResult, groupsResult] = await Promise.all([
+        // Use Promise.allSettled instead of Promise.all to handle individual failures
+        const results = await Promise.allSettled([
           fetchTopics({ pageSize: 20 }),
           fetchGroups({ pageSize: 20 }),
         ]);
-        setTopics(topicsResult.topics);
-        setGroups(groupsResult.groups);
+        
+        // Handle resolved topics promise
+        if (results[0].status === 'fulfilled') {
+          setTopics(results[0].value.topics);
+        } else {
+          console.error('Error loading topics data:', results[0].reason);
+          setTopics([]);
+        }
+        
+        // Handle resolved groups promise
+        if (results[1].status === 'fulfilled') {
+          setGroups(results[1].value.groups);
+        } else {
+          console.error('Error loading groups data:', results[1].reason);
+          setGroups([]);
+        }
       } catch (error) {
         console.error('Error loading community data:', error);
         toast.error('Failed to load community data');
@@ -122,8 +138,10 @@ export default function CommunityHome() {
       setTopics(newTopics);
       setOpenTopicDialog(false);
       topicForm.reset();
+      toast.success('Topic created successfully');
     } catch (error) {
       console.error('Error creating topic:', error);
+      toast.error('Failed to create topic');
     }
   }
 
@@ -139,8 +157,10 @@ export default function CommunityHome() {
       setGroups(newGroups);
       setOpenGroupDialog(false);
       groupForm.reset();
+      toast.success('Group created successfully');
     } catch (error) {
       console.error('Error creating group:', error);
+      toast.error('Failed to create group');
     }
   }
 
@@ -244,6 +264,7 @@ export default function CommunityHome() {
             </div>
           )}
         </TabsContent>
+        
         <TabsContent value="groups" className="space-y-4">
           {loading ? (
             <div className="text-center py-10">
@@ -299,6 +320,154 @@ export default function CommunityHome() {
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={openTopicDialog} onOpenChange={setOpenTopicDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Topic</DialogTitle>
+            <DialogDescription>
+              Create a topic to discuss politics and governance in Kenya.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...topicForm}>
+            <form onSubmit={topicForm.handleSubmit(onTopicSubmit)} className="space-y-4">
+              <FormField
+                control={topicForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Topic name" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Enter a clear, descriptive name for your topic.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={topicForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Topic description" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Provide a brief description of what this topic is about.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={topicForm.control}
+                name="visibility"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Visibility</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select visibility" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="public">Public</SelectItem>
+                        <SelectItem value="private">Private</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Public topics are visible to everyone. Private topics are only visible to members.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit">Create Topic</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openGroupDialog} onOpenChange={setOpenGroupDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Group</DialogTitle>
+            <DialogDescription>
+              Create a group to connect with like-minded individuals.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...groupForm}>
+            <form onSubmit={groupForm.handleSubmit(onGroupSubmit)} className="space-y-4">
+              <FormField
+                control={groupForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Group name" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Enter a clear, descriptive name for your group.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={groupForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Group description" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Provide a brief description of what this group is about.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={groupForm.control}
+                name="visibility"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Visibility</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select visibility" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="public">Public</SelectItem>
+                        <SelectItem value="private">Private</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Public groups are visible to everyone. Private groups are only visible to members.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit">Create Group</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
