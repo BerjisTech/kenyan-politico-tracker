@@ -1,3 +1,4 @@
+
 import { Routes, Route } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
 import { Toaster } from "@/components/ui/sonner";
@@ -23,6 +24,7 @@ import CountiesManagement from "@/pages/admin/CountiesManagement";
 import PartiesManagement from "@/pages/admin/PartiesManagement";
 import ProjectsManagement from "@/pages/admin/ProjectsManagement";
 import UserManagement from "@/pages/admin/UserManagement";
+import CommunityManagement from "@/pages/admin/CommunityManagement";
 import SubCountiesManagement from "@/pages/admin/SubCountiesManagement";
 import WardsManagement from "@/pages/admin/WardsManagement";
 import PoliticianCreate from "@/pages/forms/PoliticianCreate";
