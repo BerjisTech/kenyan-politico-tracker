@@ -50,7 +50,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { createTopic, createGroup } from '@/services/community';
 import { toast } from 'sonner';
-import { Users, Lock, Globe, PlusCircle } from 'lucide-react';
+import { Users, Lock, Globe, PlusCircle, MessageSquare } from 'lucide-react';
 
 const formSchema = z.object({
   name: z.string().min(3, {
@@ -145,181 +145,44 @@ export default function CommunityHome() {
   }
 
   return (
-    <div className="container py-10">
-      <div className="flex justify-between items-center mb-6">
+    <div className="container py-6 max-w-5xl">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Community</h1>
+          <h1 className="text-2xl font-semibold">Stories</h1>
           <p className="text-muted-foreground">Join discussions on political topics affecting Kenya</p>
         </div>
-        {isAuthenticated && (
-          <div className="flex gap-2">
-            <Dialog open={openTopicDialog} onOpenChange={setOpenTopicDialog}>
-              <DialogTrigger asChild>
-                <Button>
-                  <PlusCircle className="mr-2 h-4 w-4" /> Create Topic
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create a New Topic</DialogTitle>
-                  <DialogDescription>
-                    Topics are public or private spaces where people can discuss specific political issues.
-                  </DialogDescription>
-                </DialogHeader>
-                <Form {...topicForm}>
-                  <form onSubmit={topicForm.handleSubmit(onTopicSubmit)} className="space-y-4">
-                    <FormField
-                      control={topicForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Topic Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="E.g., Healthcare Reform" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={topicForm.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Describe what this topic is about..." 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={topicForm.control}
-                      name="visibility"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Visibility</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select visibility" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="public">
-                                <div className="flex items-center">
-                                  <Globe className="mr-2 h-4 w-4" />
-                                  <span>Public - Anyone can view</span>
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="private">
-                                <div className="flex items-center">
-                                  <Lock className="mr-2 h-4 w-4" />
-                                  <span>Private - Only members can view</span>
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <DialogFooter>
-                      <Button type="submit">Create Topic</Button>
-                    </DialogFooter>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
-            
-            <Dialog open={openGroupDialog} onOpenChange={setOpenGroupDialog}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Users className="mr-2 h-4 w-4" /> Create Group
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create a New Group</DialogTitle>
-                  <DialogDescription>
-                    Groups are private spaces where people can collaborate on political initiatives.
-                  </DialogDescription>
-                </DialogHeader>
-                <Form {...groupForm}>
-                  <form onSubmit={groupForm.handleSubmit(onGroupSubmit)} className="space-y-4">
-                    <FormField
-                      control={groupForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Group Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="E.g., Youth Advocates" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={groupForm.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Describe what this group is about..." 
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={groupForm.control}
-                      name="visibility"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Visibility</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select visibility" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="public">
-                                <div className="flex items-center">
-                                  <Globe className="mr-2 h-4 w-4" />
-                                  <span>Public - Anyone can view</span>
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="private">
-                                <div className="flex items-center">
-                                  <Lock className="mr-2 h-4 w-4" />
-                                  <span>Private - Only members can view</span>
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <DialogFooter>
-                      <Button type="submit">Create Group</Button>
-                    </DialogFooter>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
+        <div className="flex gap-2">
+          {isAuthenticated && (
+            <>
+              <Button onClick={() => setOpenTopicDialog(true)}>
+                Create Story
+              </Button>
+              <Button variant="outline">
+                View All
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+        <Card className="aspect-[4/3] bg-primary/10 flex items-center justify-center cursor-pointer hover:bg-primary/20 transition-colors">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-2">
+              <MessageSquare className="h-6 w-6 text-primary" />
+            </div>
+            <p className="text-sm font-medium">Create Story</p>
           </div>
-        )}
+        </Card>
+        {topics.map((topic) => (
+          <Card key={topic.id} className="aspect-[4/3] relative overflow-hidden group cursor-pointer">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-4">
+              <h3 className="text-white font-medium mb-1">{topic.name}</h3>
+              <p className="text-xs text-white/80 line-clamp-2">{topic.description}</p>
+            </div>
+          </Card>
+        ))}
       </div>
 
       <Tabs defaultValue="topics" value={activeTab} onValueChange={setActiveTab}>
