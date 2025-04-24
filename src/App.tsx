@@ -1,4 +1,3 @@
-
 import { Routes, Route } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
 import { Toaster } from "@/components/ui/sonner";
@@ -33,9 +32,11 @@ import AuthCallback from "@/pages/auth/AuthCallback";
 
 // Community Pages
 import CommunityHome from "@/pages/community/CommunityHome";
+import PopularTopics from "@/pages/community/PopularTopics";
+import NewTopics from "@/pages/community/NewTopics";
+import TopTopics from "@/pages/community/TopTopics";
 import TopicPage from "@/pages/community/TopicPage";
 import PostCreate from "@/pages/community/PostCreate";
-import CommunityManagement from "@/pages/admin/CommunityManagement";
 
 export default function App() {
   return (
@@ -52,9 +53,11 @@ export default function App() {
             <Route path="search" element={<SearchResults />} />
             <Route path="community" element={<Community />}>
               <Route index element={<CommunityHome />} />
+              <Route path="popular" element={<PopularTopics />} />
+              <Route path="new" element={<NewTopics />} />
+              <Route path="top" element={<TopTopics />} />
               <Route path="topic/:id" element={<TopicPage />} />
               <Route path="post/new" element={<PostCreate />} />
-              {/* Add other community routes as needed */}
             </Route>
             <Route path="auth" element={<AuthPage />} />
             <Route path="auth/callback" element={<AuthCallback />} />
@@ -84,7 +87,6 @@ export default function App() {
             <Route path="users" element={<UserManagement />} />
             <Route path="community" element={<CommunityManagement />} />
 
-            {/* Fix politician routes to match the actual path structure */}
             <Route path="politicians/create" element={<PoliticianCreate />} />
             <Route path="politicians/edit/:id" element={<PoliticianEdit />} />
           </Route>
