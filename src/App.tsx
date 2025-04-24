@@ -1,4 +1,3 @@
-
 import { Routes, Route } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
 import { Toaster } from "@/components/ui/sonner";
@@ -39,6 +38,13 @@ import NewTopics from "@/pages/community/NewTopics";
 import TopTopics from "@/pages/community/TopTopics";
 import TopicPage from "@/pages/community/TopicPage";
 import PostCreate from "@/pages/community/PostCreate";
+import Communities from "@/pages/community/Communities";
+import Following from "@/pages/community/Following";
+import Topics from "@/pages/community/Topics";
+import Notifications from "@/pages/community/Notifications";
+import Messages from "@/pages/community/Messages";
+import UserSettings from "@/pages/community/UserSettings";
+import CommunitySettings from "@/pages/community/CommunitySettings";
 
 export default function App() {
   return (
@@ -58,6 +64,13 @@ export default function App() {
               <Route path="popular" element={<PopularTopics />} />
               <Route path="new" element={<NewTopics />} />
               <Route path="top" element={<TopTopics />} />
+              <Route path="communities" element={<Communities />} />
+              <Route path="following" element={<Following />} />
+              <Route path="topics" element={<Topics />} />
+              <Route path="notifications" element={<Notifications />} />
+              <Route path="messages" element={<Messages />} />
+              <Route path="settings" element={<UserSettings />} />
+              <Route path="settings/community" element={<CommunitySettings />} />
               <Route path="topic/:id" element={<TopicPage />} />
               <Route path="post/new" element={<PostCreate />} />
             </Route>
