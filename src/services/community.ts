@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Post, Comment, Topic, Group, Channel, Hashtag,
@@ -57,7 +58,8 @@ export async function fetchPosts(options: {
     const posts = data as unknown as Post[];
     posts.forEach(post => {
       if (post.hashtags) {
-        post.hashtags = post.hashtags.map(h => h.hashtags);
+        // Fix: Extract the actual hashtag objects from the nested structure
+        post.hashtags = post.hashtags.map(h => h.hashtags as unknown as Hashtag);
       }
     });
 
@@ -97,7 +99,8 @@ export async function fetchPostById(id: string): Promise<Post> {
 
   const post = data as unknown as Post;
   if (post.hashtags) {
-    post.hashtags = post.hashtags.map(h => h.hashtags);
+    // Fix: Extract the actual hashtag objects from the nested structure
+    post.hashtags = post.hashtags.map(h => h.hashtags as unknown as Hashtag);
   }
 
   return post;
