@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Post, Comment, Topic, Group, Channel, Hashtag,
@@ -263,48 +264,70 @@ export async function fetchTopics(options: {
   search?: string; 
   page?: number;
   pageSize?: number;
-}) {
+}): Promise<{ topics: Topic[], count: number }> {
   try {
     const { search, page = 1, pageSize = 10 } = options;
-    const offset = (page - 1) * pageSize;
     
-    // Make a direct query to topics table with proper filtering
-    let query = supabase
-      .from('topics')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // First try to fetch topics with the full query
+    try {
+      let query = supabase
+        .from('topics')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false });
+        
+      if (search) {
+        query = query.ilike('name', `%${search}%`);
+      }
       
-    if (search) {
-      query = query.ilike('name', `%${search}%`);
+      // Apply pagination
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
+      
+      const { data, count, error } = await query;
+      
+      if (error) {
+        throw error;
+      }
+      
+      const topics = data ? data.map(topic => ({
+        ...topic as unknown as Topic,
+        member_count: 0 // Set a default value
+      })) : [];
+      
+      return { topics, count: count || topics.length };
+    } catch (error) {
+      console.error('Error fetching topics with main approach, trying fallback:', error);
+      
+      // Fallback approach with minimal query to avoid RLS issues
+      const { data, error: fallbackError } = await supabase
+        .from('topics')
+        .select('id, name, description, visibility, created_at, updated_at')
+        .order('created_at', { ascending: false })
+        .limit(pageSize);
+        
+      if (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+        throw fallbackError;
+      }
+      
+      const topics = data ? data.map(topic => ({
+        ...topic as unknown as Topic,
+        member_count: 0,
+        created_by: '', // Default values for missing fields
+        is_banned: false
+      })) : [];
+      
+      return { topics, count: topics.length };
     }
-    
-    // Apply pagination
-    query = query.range(offset, offset + pageSize - 1);
-    
-    const { data: topicsData, error } = await query;
-    
-    if (error) {
-      console.error('Error fetching topics:', error);
-      toast.error('Failed to load topics');
-      throw error;
-    }
-    
-    // Create a proper Topic object without trying to count members
-    // This avoids the infinite recursion issue
-    const topics: Topic[] = topicsData ? topicsData.map(topic => ({
-      ...topic as unknown as Topic,
-      member_count: 0 // Set a default value instead of trying to fetch counts
-    })) : [];
-
-    return { topics, count: topics.length };
   } catch (error) {
     console.error('Error in fetchTopics:', error);
     toast.error('Failed to load topics');
-    throw error;
+    return { topics: [], count: 0 }; // Return empty array instead of throwing
   }
 }
 
-export async function fetchTopicById(id: string): Promise<Topic> {
+export async function fetchTopicById(id: string): Promise<Topic | null> {
   try {
     // Try to get the topic directly
     const { data, error } = await supabase
@@ -319,7 +342,6 @@ export async function fetchTopicById(id: string): Promise<Topic> {
     }
 
     // Create a proper Topic object with the correct type
-    // We're not counting members to avoid the recursion issue
     const topic: Topic = {
       ...data as unknown as Topic,
       member_count: 0 // Set to default instead of fetching
@@ -329,7 +351,7 @@ export async function fetchTopicById(id: string): Promise<Topic> {
   } catch (error: any) {
     console.error('Error in fetchTopicById:', error);
     toast.error('Failed to load topic: ' + error.message);
-    throw error;
+    return null; // Return null instead of throwing
   }
 }
 
@@ -382,66 +404,94 @@ export async function fetchGroups(options: {
   search?: string; 
   page?: number;
   pageSize?: number;
-}) {
+}): Promise<{ groups: Group[], count: number }> {
   try {
     const { search, page = 1, pageSize = 10 } = options;
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
     
-    let query = supabase
-      .from('groups')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(from, to);
-
-    if (search) {
-      query = query.ilike('name', `%${search}%`);
+    // First try to fetch groups with the full query
+    try {
+      let query = supabase
+        .from('groups')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false });
+        
+      if (search) {
+        query = query.ilike('name', `%${search}%`);
+      }
+      
+      // Apply pagination
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
+      
+      const { data, count, error } = await query;
+      
+      if (error) {
+        throw error;
+      }
+      
+      const groups = data ? data.map(group => ({
+        ...group as unknown as Group,
+        member_count: 0 // Set a default value
+      })) : [];
+      
+      return { groups, count: count || groups.length };
+    } catch (error) {
+      console.error('Error fetching groups with main approach, trying fallback:', error);
+      
+      // Fallback approach with minimal query to avoid RLS issues
+      const { data, error: fallbackError } = await supabase
+        .from('groups')
+        .select('id, name, description, visibility, created_at, updated_at')
+        .order('created_at', { ascending: false })
+        .limit(pageSize);
+        
+      if (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+        throw fallbackError;
+      }
+      
+      const groups = data ? data.map(group => ({
+        ...group as unknown as Group,
+        member_count: 0,
+        created_by: '', // Default values for missing fields
+        is_banned: false
+      })) : [];
+      
+      return { groups, count: groups.length };
     }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error fetching groups:', error);
-      toast.error('Failed to load groups');
-      throw error;
-    }
-
-    // Create group objects without counting members
-    // This avoids the infinite recursion issue
-    const groups = data ? data.map(group => ({
-      ...group as unknown as Group,
-      member_count: 0 // Set a default value instead of trying to fetch counts
-    })) : [];
-
-    return { groups, count: groups.length };
   } catch (error) {
     console.error('Error fetching groups:', error);
     toast.error('Failed to load groups');
-    throw error;
+    return { groups: [], count: 0 }; // Return empty array instead of throwing
   }
 }
 
-export async function fetchGroupById(id: string): Promise<Group> {
-  const { data, error } = await supabase
-    .from('groups')
-    .select('*')
-    .eq('id', id)
-    .single();
+export async function fetchGroupById(id: string): Promise<Group | null> {
+  try {
+    const { data, error } = await supabase
+      .from('groups')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-  if (error) {
-    console.error('Error fetching group:', error);
+    if (error) {
+      console.error('Error fetching group:', error);
+      throw error;
+    }
+
+    // Create a proper Group object with the correct type
+    const group: Group = {
+      ...data as unknown as Group,
+      member_count: 0 // Set to default instead of fetching
+    };
+
+    return group;
+  } catch (error: any) {
+    console.error('Error in fetchGroupById:', error);
     toast.error('Failed to load group');
-    throw error;
+    return null; // Return null instead of throwing
   }
-
-  // Create a proper Group object with the correct type
-  // We're not counting members to avoid the recursion issue
-  const group: Group = {
-    ...data as unknown as Group,
-    member_count: 0 // Set to default instead of fetching
-  };
-
-  return group;
 }
 
 export async function createGroup(group: {
@@ -661,6 +711,28 @@ export async function joinGroup(groupId: string) {
   }
 }
 
+// Hashtags
+export async function fetchHashtags(search?: string): Promise<Hashtag[]> {
+  let query = supabase
+    .from('hashtags')
+    .select('*')
+    .order('name', { ascending: true });
+
+  if (search) {
+    query = query.ilike('name', `%${search}%`);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error fetching hashtags:', error);
+    toast.error('Failed to load hashtags');
+    throw error;
+  }
+
+  return data as Hashtag[];
+}
+
 // Moderation
 export async function banUserFromTopic(options: {
   topicId: string;
@@ -689,5 +761,32 @@ export async function banUserFromTopic(options: {
     console.error('Error banning user:', error);
     toast.error('Failed to ban user: ' + error.message);
     throw error;
+  }
+}
+
+// Saved Content
+export async function fetchSavedContent(options: { 
+  page?: number;
+  pageSize?: number;
+}): Promise<{ posts: Post[], count: number }> {
+  try {
+    const { page = 1, pageSize = 10 } = options;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    
+    const user = await supabase.auth.getUser();
+    if (!user.data.user) {
+      throw new Error('User not authenticated');
+    }
+    
+    // For now, we'll just return some placeholder data until the saved_posts table is created
+    return { 
+      posts: [],
+      count: 0 
+    };
+  } catch (error) {
+    console.error('Error fetching saved content:', error);
+    toast.error('Failed to load saved content');
+    return { posts: [], count: 0 };
   }
 }

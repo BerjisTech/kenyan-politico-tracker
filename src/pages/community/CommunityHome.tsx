@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -46,12 +45,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { createTopic, createGroup } from '@/services/community';
 import { toast } from 'sonner';
-import { Users, Lock, Globe, PlusCircle, MessageSquare } from 'lucide-react';
+import { Users, Lock, Globe, PlusCircle, MessageSquare, AlertCircle } from 'lucide-react';
 
 const formSchema = z.object({
   name: z.string().min(3, {
@@ -71,6 +71,8 @@ export default function CommunityHome() {
   const [loading, setLoading] = useState(true);
   const [openTopicDialog, setOpenTopicDialog] = useState(false);
   const [openGroupDialog, setOpenGroupDialog] = useState(false);
+  const [topicsError, setTopicsError] = useState(false);
+  const [groupsError, setGroupsError] = useState(false);
 
   const topicForm = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -93,34 +95,30 @@ export default function CommunityHome() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
+      setTopicsError(false);
+      setGroupsError(false);
+      
+      // Load topics
       try {
-        // Use Promise.allSettled instead of Promise.all to handle individual failures
-        const results = await Promise.allSettled([
-          fetchTopics({ pageSize: 20 }),
-          fetchGroups({ pageSize: 20 }),
-        ]);
-        
-        // Handle resolved topics promise
-        if (results[0].status === 'fulfilled') {
-          setTopics(results[0].value.topics);
-        } else {
-          console.error('Error loading topics data:', results[0].reason);
-          setTopics([]);
-        }
-        
-        // Handle resolved groups promise
-        if (results[1].status === 'fulfilled') {
-          setGroups(results[1].value.groups);
-        } else {
-          console.error('Error loading groups data:', results[1].reason);
-          setGroups([]);
-        }
+        const result = await fetchTopics({ pageSize: 20 });
+        setTopics(result.topics);
       } catch (error) {
-        console.error('Error loading community data:', error);
-        toast.error('Failed to load community data');
-      } finally {
-        setLoading(false);
+        console.error('Error loading topics data:', error);
+        setTopicsError(true);
+        setTopics([]);
       }
+      
+      // Load groups
+      try {
+        const result = await fetchGroups({ pageSize: 20 });
+        setGroups(result.groups);
+      } catch (error) {
+        console.error('Error loading groups data:', error);
+        setGroupsError(true);
+        setGroups([]);
+      }
+      
+      setLoading(false);
     };
 
     loadData();
@@ -164,6 +162,35 @@ export default function CommunityHome() {
     }
   }
 
+  const ErrorDisplay = ({ type }: { type: 'topics' | 'groups' }) => (
+    <Card className="p-8 text-center">
+      <div className="flex flex-col items-center justify-center space-y-4">
+        <div className="bg-destructive/10 p-4 rounded-full">
+          <AlertCircle className="h-12 w-12 text-destructive/70" />
+        </div>
+        <h2 className="text-xl font-medium">Failed to load {type}</h2>
+        <p className="text-muted-foreground max-w-md">
+          There was an error loading the {type}. This might be due to a temporary server issue.
+        </p>
+        <Button 
+          onClick={() => {
+            if (type === 'topics') {
+              fetchTopics({ pageSize: 20 })
+                .then(result => setTopics(result.topics))
+                .catch(() => setTopicsError(true));
+            } else {
+              fetchGroups({ pageSize: 20 })
+                .then(result => setGroups(result.groups))
+                .catch(() => setGroupsError(true));
+            }
+          }}
+        >
+          Try Again
+        </Button>
+      </div>
+    </Card>
+  );
+
   return (
     <div className="container py-6 max-w-5xl">
       <div className="flex items-center justify-between mb-8">
@@ -194,15 +221,28 @@ export default function CommunityHome() {
             <p className="text-sm font-medium">Create Story</p>
           </div>
         </Card>
-        {topics.map((topic) => (
-          <Card key={topic.id} className="aspect-[4/3] relative overflow-hidden group cursor-pointer">
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-4">
-              <h3 className="text-white font-medium mb-1">{topic.name}</h3>
-              <p className="text-xs text-white/80 line-clamp-2">{topic.description}</p>
-            </div>
-          </Card>
-        ))}
+
+        {loading ? (
+          Array(3).fill(0).map((_, i) => (
+            <Card key={i} className="aspect-[4/3] relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <Skeleton className="h-5 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            </Card>
+          ))
+        ) : (
+          topics.slice(0, 3).map((topic) => (
+            <Card key={topic.id} className="aspect-[4/3] relative overflow-hidden group cursor-pointer">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <h3 className="text-white font-medium mb-1">{topic.name}</h3>
+                <p className="text-xs text-white/80 line-clamp-2">{topic.description}</p>
+              </div>
+            </Card>
+          ))
+        )}
       </div>
 
       <Tabs defaultValue="topics" value={activeTab} onValueChange={setActiveTab}>
@@ -210,11 +250,29 @@ export default function CommunityHome() {
           <TabsTrigger value="topics">Topics</TabsTrigger>
           <TabsTrigger value="groups">Groups</TabsTrigger>
         </TabsList>
+        
         <TabsContent value="topics" className="space-y-4">
           {loading ? (
-            <div className="text-center py-10">
-              <p>Loading topics...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array(6).fill(0).map((_, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <CardHeader>
+                    <Skeleton className="h-6 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-4 w-full mb-1" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <Skeleton className="h-4 w-1/4" />
+                    <Skeleton className="h-9 w-24" />
+                  </CardFooter>
+                </Card>
+              ))}
             </div>
+          ) : topicsError ? (
+            <ErrorDisplay type="topics" />
           ) : topics.length === 0 ? (
             <div className="text-center py-10">
               <p>No topics found. Be the first to create one!</p>
@@ -267,9 +325,26 @@ export default function CommunityHome() {
         
         <TabsContent value="groups" className="space-y-4">
           {loading ? (
-            <div className="text-center py-10">
-              <p>Loading groups...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array(6).fill(0).map((_, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <CardHeader>
+                    <Skeleton className="h-6 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-4 w-full mb-1" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <Skeleton className="h-4 w-1/4" />
+                    <Skeleton className="h-9 w-24" />
+                  </CardFooter>
+                </Card>
+              ))}
             </div>
+          ) : groupsError ? (
+            <ErrorDisplay type="groups" />
           ) : groups.length === 0 ? (
             <div className="text-center py-10">
               <p>No groups found. Be the first to create one!</p>
