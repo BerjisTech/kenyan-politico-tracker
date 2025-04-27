@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Post, Comment, Topic, Group, Channel, Hashtag,
@@ -56,10 +55,8 @@ export async function fetchPosts(options: {
     }
 
     const posts = data as unknown as Post[];
-    // Process post hashtags
     posts.forEach(post => {
       if (post.hashtags) {
-        // @ts-ignore - Reshape nested hashtags structure
         post.hashtags = post.hashtags.map(h => h.hashtags);
       }
     });
@@ -99,9 +96,7 @@ export async function fetchPostById(id: string): Promise<Post> {
   }
 
   const post = data as unknown as Post;
-  // Process post hashtags
   if (post.hashtags) {
-    // @ts-ignore - Reshape nested hashtags structure
     post.hashtags = post.hashtags.map(h => h.hashtags);
   }
 
@@ -143,11 +138,8 @@ export async function createPost(post: {
       throw postError;
     }
 
-    // Process hashtags if provided
     if (post.hashtags && post.hashtags.length > 0) {
-      // Create new hashtags or get existing ones
       for (const tag of post.hashtags) {
-        // Upsert the hashtag
         const { data: hashtagData, error: hashtagError } = await supabase
           .from('hashtags')
           .upsert({ name: tag.toLowerCase().trim() })
@@ -159,7 +151,6 @@ export async function createPost(post: {
           continue;
         }
 
-        // Link hashtag to post
         await supabase
           .from('post_hashtags')
           .insert({
@@ -200,7 +191,6 @@ export async function fetchComments(postId: string): Promise<Comment[]> {
     throw error;
   }
 
-  // Fetch replies for each top-level comment
   const comments = data as unknown as Comment[];
   for (const comment of comments) {
     const { data: repliesData, error: repliesError } = await supabase
@@ -268,7 +258,6 @@ export async function fetchTopics(options: {
   try {
     const { search, page = 1, pageSize = 10 } = options;
     
-    // First try to fetch topics with the full query
     try {
       let query = supabase
         .from('topics')
@@ -279,7 +268,6 @@ export async function fetchTopics(options: {
         query = query.ilike('name', `%${search}%`);
       }
       
-      // Apply pagination
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
       query = query.range(from, to);
@@ -292,14 +280,13 @@ export async function fetchTopics(options: {
       
       const topics = data ? data.map(topic => ({
         ...topic as unknown as Topic,
-        member_count: 0 // Set a default value
+        member_count: 0
       })) : [];
       
       return { topics, count: count || topics.length };
     } catch (error) {
       console.error('Error fetching topics with main approach, trying fallback:', error);
       
-      // Fallback approach with minimal query to avoid RLS issues
       const { data, error: fallbackError } = await supabase
         .from('topics')
         .select('id, name, description, visibility, created_at, updated_at')
@@ -314,7 +301,7 @@ export async function fetchTopics(options: {
       const topics = data ? data.map(topic => ({
         ...topic as unknown as Topic,
         member_count: 0,
-        created_by: '', // Default values for missing fields
+        created_by: '',
         is_banned: false
       })) : [];
       
@@ -323,13 +310,12 @@ export async function fetchTopics(options: {
   } catch (error) {
     console.error('Error in fetchTopics:', error);
     toast.error('Failed to load topics');
-    return { topics: [], count: 0 }; // Return empty array instead of throwing
+    return { topics: [], count: 0 };
   }
 }
 
 export async function fetchTopicById(id: string): Promise<Topic | null> {
   try {
-    // Try to get the topic directly
     const { data, error } = await supabase
       .from('topics')
       .select('*')
@@ -341,17 +327,16 @@ export async function fetchTopicById(id: string): Promise<Topic | null> {
       throw error;
     }
 
-    // Create a proper Topic object with the correct type
     const topic: Topic = {
       ...data as unknown as Topic,
-      member_count: 0 // Set to default instead of fetching
+      member_count: 0
     };
 
     return topic;
   } catch (error: any) {
     console.error('Error in fetchTopicById:', error);
     toast.error('Failed to load topic: ' + error.message);
-    return null; // Return null instead of throwing
+    return null;
   }
 }
 
@@ -381,7 +366,6 @@ export async function createTopic(topic: {
       throw topicError;
     }
 
-    // Add creator as admin member
     await supabase
       .from('topic_members')
       .insert({
@@ -408,7 +392,6 @@ export async function fetchGroups(options: {
   try {
     const { search, page = 1, pageSize = 10 } = options;
     
-    // First try to fetch groups with the full query
     try {
       let query = supabase
         .from('groups')
@@ -419,7 +402,6 @@ export async function fetchGroups(options: {
         query = query.ilike('name', `%${search}%`);
       }
       
-      // Apply pagination
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
       query = query.range(from, to);
@@ -432,14 +414,13 @@ export async function fetchGroups(options: {
       
       const groups = data ? data.map(group => ({
         ...group as unknown as Group,
-        member_count: 0 // Set a default value
+        member_count: 0
       })) : [];
       
       return { groups, count: count || groups.length };
     } catch (error) {
       console.error('Error fetching groups with main approach, trying fallback:', error);
       
-      // Fallback approach with minimal query to avoid RLS issues
       const { data, error: fallbackError } = await supabase
         .from('groups')
         .select('id, name, description, visibility, created_at, updated_at')
@@ -454,7 +435,7 @@ export async function fetchGroups(options: {
       const groups = data ? data.map(group => ({
         ...group as unknown as Group,
         member_count: 0,
-        created_by: '', // Default values for missing fields
+        created_by: '',
         is_banned: false
       })) : [];
       
@@ -463,7 +444,7 @@ export async function fetchGroups(options: {
   } catch (error) {
     console.error('Error fetching groups:', error);
     toast.error('Failed to load groups');
-    return { groups: [], count: 0 }; // Return empty array instead of throwing
+    return { groups: [], count: 0 };
   }
 }
 
@@ -480,17 +461,16 @@ export async function fetchGroupById(id: string): Promise<Group | null> {
       throw error;
     }
 
-    // Create a proper Group object with the correct type
     const group: Group = {
       ...data as unknown as Group,
-      member_count: 0 // Set to default instead of fetching
+      member_count: 0
     };
 
     return group;
   } catch (error: any) {
     console.error('Error in fetchGroupById:', error);
     toast.error('Failed to load group');
-    return null; // Return null instead of throwing
+    return null;
   }
 }
 
@@ -520,7 +500,6 @@ export async function createGroup(group: {
       throw groupError;
     }
 
-    // Add creator as admin member
     await supabase
       .from('group_members')
       .insert({
@@ -616,7 +595,6 @@ export async function createChannel(channel: {
       throw channelError;
     }
 
-    // Add creator as admin member
     await supabase
       .from('channel_members')
       .insert({
@@ -711,28 +689,6 @@ export async function joinGroup(groupId: string) {
   }
 }
 
-// Hashtags
-export async function fetchHashtags(search?: string): Promise<Hashtag[]> {
-  let query = supabase
-    .from('hashtags')
-    .select('*')
-    .order('name', { ascending: true });
-
-  if (search) {
-    query = query.ilike('name', `%${search}%`);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error('Error fetching hashtags:', error);
-    toast.error('Failed to load hashtags');
-    throw error;
-  }
-
-  return data as Hashtag[];
-}
-
 // Moderation
 export async function banUserFromTopic(options: {
   topicId: string;
@@ -779,7 +735,6 @@ export async function fetchSavedContent(options: {
       throw new Error('User not authenticated');
     }
     
-    // For now, we'll just return some placeholder data until the saved_posts table is created
     return { 
       posts: [],
       count: 0 
