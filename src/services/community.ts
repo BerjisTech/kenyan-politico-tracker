@@ -59,7 +59,8 @@ export async function fetchPosts(options: {
     posts.forEach(post => {
       if (post.hashtags) {
         // Fix: Extract the actual hashtag objects from the nested structure
-        post.hashtags = post.hashtags.map(h => h.hashtags as unknown as Hashtag);
+        // The nested data structure from Supabase is different than our Post type expects
+        post.hashtags = post.hashtags.map((h: any) => h.hashtags);
       }
     });
 
@@ -100,7 +101,8 @@ export async function fetchPostById(id: string): Promise<Post> {
   const post = data as unknown as Post;
   if (post.hashtags) {
     // Fix: Extract the actual hashtag objects from the nested structure
-    post.hashtags = post.hashtags.map(h => h.hashtags as unknown as Hashtag);
+    // The nested data structure from Supabase is different than our Post type expects
+    post.hashtags = post.hashtags.map((h: any) => h.hashtags);
   }
 
   return post;
