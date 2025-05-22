@@ -24,6 +24,7 @@ import CountiesManagement from "@/pages/admin/CountiesManagement";
 import PartiesManagement from "@/pages/admin/PartiesManagement";
 import ProjectsManagement from "@/pages/admin/ProjectsManagement";
 import UserManagement from "@/pages/admin/UserManagement";
+import CommunityManagement from "@/pages/admin/CommunityManagement";
 import SubCountiesManagement from "@/pages/admin/SubCountiesManagement";
 import WardsManagement from "@/pages/admin/WardsManagement";
 import PoliticianCreate from "@/pages/forms/PoliticianCreate";
@@ -33,9 +34,19 @@ import AuthCallback from "@/pages/auth/AuthCallback";
 
 // Community Pages
 import CommunityHome from "@/pages/community/CommunityHome";
+import PopularTopics from "@/pages/community/PopularTopics";
+import NewTopics from "@/pages/community/NewTopics";
+import TopTopics from "@/pages/community/TopTopics";
 import TopicPage from "@/pages/community/TopicPage";
 import PostCreate from "@/pages/community/PostCreate";
-import CommunityManagement from "@/pages/admin/CommunityManagement";
+import Communities from "@/pages/community/Communities";
+import Following from "@/pages/community/Following";
+import Topics from "@/pages/community/Topics";
+import Notifications from "@/pages/community/Notifications";
+import Messages from "@/pages/community/Messages";
+import UserSettings from "@/pages/community/UserSettings";
+import CommunitySettings from "@/pages/community/CommunitySettings";
+import Saved from "@/pages/community/Saved";
 
 export default function App() {
   return (
@@ -52,9 +63,19 @@ export default function App() {
             <Route path="search" element={<SearchResults />} />
             <Route path="community" element={<Community />}>
               <Route index element={<CommunityHome />} />
+              <Route path="popular" element={<PopularTopics />} />
+              <Route path="new" element={<NewTopics />} />
+              <Route path="top" element={<TopTopics />} />
+              <Route path="communities" element={<Communities />} />
+              <Route path="following" element={<Following />} />
+              <Route path="topics" element={<Topics />} />
+              <Route path="notifications" element={<Notifications />} />
+              <Route path="messages" element={<Messages />} />
+              <Route path="settings" element={<UserSettings />} />
+              <Route path="settings/community" element={<CommunitySettings />} />
+              <Route path="saved" element={<Saved />} />
               <Route path="topic/:id" element={<TopicPage />} />
               <Route path="post/new" element={<PostCreate />} />
-              {/* Add other community routes as needed */}
             </Route>
             <Route path="auth" element={<AuthPage />} />
             <Route path="auth/callback" element={<AuthCallback />} />
@@ -84,7 +105,6 @@ export default function App() {
             <Route path="users" element={<UserManagement />} />
             <Route path="community" element={<CommunityManagement />} />
 
-            {/* Fix politician routes to match the actual path structure */}
             <Route path="politicians/create" element={<PoliticianCreate />} />
             <Route path="politicians/edit/:id" element={<PoliticianEdit />} />
           </Route>

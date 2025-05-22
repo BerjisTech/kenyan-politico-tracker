@@ -1035,6 +1035,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_default_uuid: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
@@ -1042,6 +1046,19 @@ export type Database = {
       get_user_role_safely: {
         Args: { user_id: string }
         Returns: string
+      }
+      get_user_roles_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      get_user_roles_safely: {
+        Args: { page_num: number; items_per_page: number }
+        Returns: {
+          user_id: string
+          role: string
+          created_at: string
+          updated_at: string
+        }[]
       }
       has_role: {
         Args: {
@@ -1053,6 +1070,14 @@ export type Database = {
       is_admin_or_superadmin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      is_superadmin: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
+      update_user_role_safely: {
+        Args: { p_user_id: string; p_role: string }
+        Returns: undefined
       }
     }
     Enums: {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -46,12 +45,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { createTopic, createGroup } from '@/services/community';
 import { toast } from 'sonner';
-import { Users, Lock, Globe, PlusCircle } from 'lucide-react';
+import { Users, Lock, Globe, PlusCircle, MessageSquare, AlertCircle } from 'lucide-react';
 
 const formSchema = z.object({
   name: z.string().min(3, {
@@ -71,6 +71,8 @@ export default function CommunityHome() {
   const [loading, setLoading] = useState(true);
   const [openTopicDialog, setOpenTopicDialog] = useState(false);
   const [openGroupDialog, setOpenGroupDialog] = useState(false);
+  const [topicsError, setTopicsError] = useState(false);
+  const [groupsError, setGroupsError] = useState(false);
 
   const topicForm = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -93,19 +95,30 @@ export default function CommunityHome() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
+      setTopicsError(false);
+      setGroupsError(false);
+      
+      // Load topics
       try {
-        const [topicsResult, groupsResult] = await Promise.all([
-          fetchTopics({ pageSize: 20 }),
-          fetchGroups({ pageSize: 20 }),
-        ]);
-        setTopics(topicsResult.topics);
-        setGroups(groupsResult.groups);
+        const result = await fetchTopics({ pageSize: 20 });
+        setTopics(result.topics);
       } catch (error) {
-        console.error('Error loading community data:', error);
-        toast.error('Failed to load community data');
-      } finally {
-        setLoading(false);
+        console.error('Error loading topics data:', error);
+        setTopicsError(true);
+        setTopics([]);
       }
+      
+      // Load groups
+      try {
+        const result = await fetchGroups({ pageSize: 20 });
+        setGroups(result.groups);
+      } catch (error) {
+        console.error('Error loading groups data:', error);
+        setGroupsError(true);
+        setGroups([]);
+      }
+      
+      setLoading(false);
     };
 
     loadData();
@@ -119,13 +132,14 @@ export default function CommunityHome() {
         visibility: values.visibility as "public" | "private",
       });
       
-      // Refresh topics list
       const { topics: newTopics } = await fetchTopics({ pageSize: 20 });
       setTopics(newTopics);
       setOpenTopicDialog(false);
       topicForm.reset();
+      toast.success('Topic created successfully');
     } catch (error) {
       console.error('Error creating topic:', error);
+      toast.error('Failed to create topic');
     }
   }
 
@@ -137,191 +151,97 @@ export default function CommunityHome() {
         visibility: values.visibility as "public" | "private",
       });
       
-      // Refresh groups list
       const { groups: newGroups } = await fetchGroups({ pageSize: 20 });
       setGroups(newGroups);
       setOpenGroupDialog(false);
       groupForm.reset();
+      toast.success('Group created successfully');
     } catch (error) {
       console.error('Error creating group:', error);
+      toast.error('Failed to create group');
     }
   }
 
+  const ErrorDisplay = ({ type }: { type: 'topics' | 'groups' }) => (
+    <Card className="p-8 text-center">
+      <div className="flex flex-col items-center justify-center space-y-4">
+        <div className="bg-destructive/10 p-4 rounded-full">
+          <AlertCircle className="h-12 w-12 text-destructive/70" />
+        </div>
+        <h2 className="text-xl font-medium">Failed to load {type}</h2>
+        <p className="text-muted-foreground max-w-md">
+          There was an error loading the {type}. This might be due to a temporary server issue.
+        </p>
+        <Button 
+          onClick={() => {
+            if (type === 'topics') {
+              fetchTopics({ pageSize: 20 })
+                .then(result => setTopics(result.topics))
+                .catch(() => setTopicsError(true));
+            } else {
+              fetchGroups({ pageSize: 20 })
+                .then(result => setGroups(result.groups))
+                .catch(() => setGroupsError(true));
+            }
+          }}
+        >
+          Try Again
+        </Button>
+      </div>
+    </Card>
+  );
+
   return (
-    <div className="container py-10">
-      <div className="flex justify-between items-center mb-6">
+    <div className="container py-6 max-w-5xl">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Community</h1>
+          <h1 className="text-2xl font-semibold">Stories</h1>
           <p className="text-muted-foreground">Join discussions on political topics affecting Kenya</p>
         </div>
-        {isAuthenticated && (
-          <div className="flex gap-2">
-            <Dialog open={openTopicDialog} onOpenChange={setOpenTopicDialog}>
-              <DialogTrigger asChild>
-                <Button>
-                  <PlusCircle className="mr-2 h-4 w-4" /> Create Topic
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create a New Topic</DialogTitle>
-                  <DialogDescription>
-                    Topics are public or private spaces where people can discuss specific political issues.
-                  </DialogDescription>
-                </DialogHeader>
-                <Form {...topicForm}>
-                  <form onSubmit={topicForm.handleSubmit(onTopicSubmit)} className="space-y-4">
-                    <FormField
-                      control={topicForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Topic Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="E.g., Healthcare Reform" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={topicForm.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Describe what this topic is about..." 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={topicForm.control}
-                      name="visibility"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Visibility</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select visibility" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="public">
-                                <div className="flex items-center">
-                                  <Globe className="mr-2 h-4 w-4" />
-                                  <span>Public - Anyone can view</span>
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="private">
-                                <div className="flex items-center">
-                                  <Lock className="mr-2 h-4 w-4" />
-                                  <span>Private - Only members can view</span>
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <DialogFooter>
-                      <Button type="submit">Create Topic</Button>
-                    </DialogFooter>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
-            
-            <Dialog open={openGroupDialog} onOpenChange={setOpenGroupDialog}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Users className="mr-2 h-4 w-4" /> Create Group
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create a New Group</DialogTitle>
-                  <DialogDescription>
-                    Groups are private spaces where people can collaborate on political initiatives.
-                  </DialogDescription>
-                </DialogHeader>
-                <Form {...groupForm}>
-                  <form onSubmit={groupForm.handleSubmit(onGroupSubmit)} className="space-y-4">
-                    <FormField
-                      control={groupForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Group Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="E.g., Youth Advocates" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={groupForm.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Describe what this group is about..." 
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={groupForm.control}
-                      name="visibility"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Visibility</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select visibility" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="public">
-                                <div className="flex items-center">
-                                  <Globe className="mr-2 h-4 w-4" />
-                                  <span>Public - Anyone can view</span>
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="private">
-                                <div className="flex items-center">
-                                  <Lock className="mr-2 h-4 w-4" />
-                                  <span>Private - Only members can view</span>
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <DialogFooter>
-                      <Button type="submit">Create Group</Button>
-                    </DialogFooter>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
+        <div className="flex gap-2">
+          {isAuthenticated && (
+            <>
+              <Button onClick={() => setOpenTopicDialog(true)}>
+                Create Story
+              </Button>
+              <Button variant="outline">
+                View All
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+        <Card className="aspect-[4/3] bg-primary/10 flex items-center justify-center cursor-pointer hover:bg-primary/20 transition-colors">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-2">
+              <MessageSquare className="h-6 w-6 text-primary" />
+            </div>
+            <p className="text-sm font-medium">Create Story</p>
           </div>
+        </Card>
+
+        {loading ? (
+          Array(3).fill(0).map((_, i) => (
+            <Card key={i} className="aspect-[4/3] relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <Skeleton className="h-5 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            </Card>
+          ))
+        ) : (
+          topics.slice(0, 3).map((topic) => (
+            <Card key={topic.id} className="aspect-[4/3] relative overflow-hidden group cursor-pointer">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <h3 className="text-white font-medium mb-1">{topic.name}</h3>
+                <p className="text-xs text-white/80 line-clamp-2">{topic.description}</p>
+              </div>
+            </Card>
+          ))
         )}
       </div>
 
@@ -330,11 +250,29 @@ export default function CommunityHome() {
           <TabsTrigger value="topics">Topics</TabsTrigger>
           <TabsTrigger value="groups">Groups</TabsTrigger>
         </TabsList>
+        
         <TabsContent value="topics" className="space-y-4">
           {loading ? (
-            <div className="text-center py-10">
-              <p>Loading topics...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array(6).fill(0).map((_, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <CardHeader>
+                    <Skeleton className="h-6 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-4 w-full mb-1" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <Skeleton className="h-4 w-1/4" />
+                    <Skeleton className="h-9 w-24" />
+                  </CardFooter>
+                </Card>
+              ))}
             </div>
+          ) : topicsError ? (
+            <ErrorDisplay type="topics" />
           ) : topics.length === 0 ? (
             <div className="text-center py-10">
               <p>No topics found. Be the first to create one!</p>
@@ -384,11 +322,29 @@ export default function CommunityHome() {
             </div>
           )}
         </TabsContent>
+        
         <TabsContent value="groups" className="space-y-4">
           {loading ? (
-            <div className="text-center py-10">
-              <p>Loading groups...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array(6).fill(0).map((_, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <CardHeader>
+                    <Skeleton className="h-6 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-4 w-full mb-1" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <Skeleton className="h-4 w-1/4" />
+                    <Skeleton className="h-9 w-24" />
+                  </CardFooter>
+                </Card>
+              ))}
             </div>
+          ) : groupsError ? (
+            <ErrorDisplay type="groups" />
           ) : groups.length === 0 ? (
             <div className="text-center py-10">
               <p>No groups found. Be the first to create one!</p>
@@ -439,6 +395,154 @@ export default function CommunityHome() {
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={openTopicDialog} onOpenChange={setOpenTopicDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Topic</DialogTitle>
+            <DialogDescription>
+              Create a topic to discuss politics and governance in Kenya.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...topicForm}>
+            <form onSubmit={topicForm.handleSubmit(onTopicSubmit)} className="space-y-4">
+              <FormField
+                control={topicForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Topic name" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Enter a clear, descriptive name for your topic.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={topicForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Topic description" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Provide a brief description of what this topic is about.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={topicForm.control}
+                name="visibility"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Visibility</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select visibility" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="public">Public</SelectItem>
+                        <SelectItem value="private">Private</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Public topics are visible to everyone. Private topics are only visible to members.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit">Create Topic</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openGroupDialog} onOpenChange={setOpenGroupDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Group</DialogTitle>
+            <DialogDescription>
+              Create a group to connect with like-minded individuals.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...groupForm}>
+            <form onSubmit={groupForm.handleSubmit(onGroupSubmit)} className="space-y-4">
+              <FormField
+                control={groupForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Group name" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Enter a clear, descriptive name for your group.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={groupForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Group description" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Provide a brief description of what this group is about.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={groupForm.control}
+                name="visibility"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Visibility</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select visibility" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="public">Public</SelectItem>
+                        <SelectItem value="private">Private</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Public groups are visible to everyone. Private groups are only visible to members.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit">Create Group</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

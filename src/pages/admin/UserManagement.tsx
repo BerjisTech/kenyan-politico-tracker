@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -65,40 +64,33 @@ export default function UserManagement() {
     try {
       setLoading(true);
       setError(null);
-      
-      // Use the RPC function instead to avoid infinite recursion
-      const { data: userData, error } = await supabase
-        .from('user_roles')
-        .select('user_id, role, created_at, updated_at')
-        .range((page - 1) * itemsPerPage, page * itemsPerPage - 1)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error("Error fetching users:", error);
-        throw error;
+
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('get_user_roles_safely', {
+        page_num: page,
+        items_per_page: itemsPerPage,
+      });
+
+      if (rpcError) {
+        console.error("Error fetching users:", rpcError);
+        throw rpcError;
       }
-      
-      // Ensure the role value is correctly typed
-      const typedUsers: UserWithRole[] = (userData || []).map(user => ({
-        ...user,
-        role: user.role as 'superadmin' | 'admin' | 'staff' | 'user'
+
+      const usersArray = Array.isArray(rpcResult) ? rpcResult : [];
+      const typedUsers: UserWithRole[] = usersArray.map((user: any) => ({
+        user_id: user.user_id,
+        role: user.role as 'superadmin' | 'admin' | 'staff' | 'user',
+        created_at: user.created_at,
+        updated_at: user.updated_at,
       }));
-      
-      // Set users from direct query
       setUsers(typedUsers);
-      
-      // Count total records for pagination
-      const { count, error: countError } = await supabase
-        .from('user_roles')
-        .select('user_id', { count: 'exact', head: true });
-      
+
+      const { data: countData, error: countError } = await supabase.rpc('get_user_roles_count');
       if (countError) {
         console.error("Error fetching user count:", countError);
         throw countError;
       }
-      
-      setTotalCount(count || 0);
-      
+      setTotalCount(typeof countData === 'number' ? countData : 0);
+
     } catch (error: any) {
       console.error('Error fetching users:', error);
       setError(error.message || 'Failed to load users');
@@ -110,19 +102,17 @@ export default function UserManagement() {
 
   const updateUserRole = async (userId: string, newRole: 'superadmin' | 'admin' | 'staff' | 'user') => {
     try {
-      // Instead of using rpc, use a direct REST call to the function
-      const { error } = await supabase
-        .from('user_roles')
-        .update({ role: newRole })
-        .eq('user_id', userId);
-      
+      const { error } = await supabase.rpc('update_user_role_safely', {
+        p_user_id: userId,
+        p_role: newRole,
+      });
+
       if (error) throw error;
-      
-      // Update local state
+
       setUsers(users.map(user => 
         user.user_id === userId ? { ...user, role: newRole } : user
       ));
-      
+
       toast.success(`User role updated to ${newRole}`);
     } catch (error: any) {
       console.error('Error updating user role:', error);
@@ -219,7 +209,6 @@ export default function UserManagement() {
                     <Select
                       value={user.role}
                       onValueChange={(value) => {
-                        // Type assertion to ensure value is a valid role
                         const role = value as 'superadmin' | 'admin' | 'staff' | 'user';
                         updateUserRole(user.user_id, role);
                       }}

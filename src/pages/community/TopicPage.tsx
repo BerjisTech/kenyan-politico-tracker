@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -120,7 +119,6 @@ export default function TopicPage() {
     
     try {
       await joinTopic(topic.id);
-      // Refresh topic data to update member count
       const updatedTopic = await fetchTopicById(topic.id);
       setTopic(updatedTopic);
     } catch (error) {
@@ -139,7 +137,6 @@ export default function TopicPage() {
         visibility: values.visibility as "public" | "private",
       });
       
-      // Refresh channels list
       const { channels: newChannels } = await fetchChannels({ topic_id: topic.id });
       setChannels(newChannels);
       setOpenChannelDialog(false);
